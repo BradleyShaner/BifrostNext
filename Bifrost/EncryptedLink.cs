@@ -17,7 +17,7 @@ using Org.BouncyCastle.Asn1.X9;
 using Org.BouncyCastle.Asn1.Nist;
 using Org.BouncyCastle.OpenSsl;
 
-using NLog;
+
 using Bifrost.Ciphers;
 using System.Threading;
 using Bifrost.KeyExchanges;
@@ -122,6 +122,24 @@ namespace Bifrost
             Log.Debug("Loaded certificate.");
 
             Signature = Convert.FromBase64String(sign);
+            Log.Debug("Loaded signature.");
+        }
+
+        /// <summary>
+        /// Loads a keypair and signature from the provided strings.
+        /// </summary>
+        /// <param name="ca">The public key of the certificate authority in text form.</param>
+        /// <param name="key">Both our public and private key, concatenated, in text form.</param>
+        /// <param name="sign">The signature in Base64.</param>
+        public void LoadCertificatesNonBase64(string caPublicKey, string pubPrivKeyPair, byte[] sign)
+        {
+            CertificateAuthority = (RsaKeyParameters)RsaHelpers.PemDeserialize(caPublicKey);
+            Log.Debug("Loaded certificate authority.");
+
+            Certificate = (AsymmetricCipherKeyPair)RsaHelpers.PemDeserialize(pubPrivKeyPair);
+            Log.Debug("Loaded certificate.");
+
+            Signature = sign;
             Log.Debug("Loaded signature.");
         }
 

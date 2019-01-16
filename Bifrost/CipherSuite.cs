@@ -1,7 +1,6 @@
 ﻿using Bifrost.Ciphers;
 using Bifrost.KeyExchanges;
 using Bifrost.MACs;
-using NLog;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -256,6 +255,7 @@ namespace Bifrost
 
         public static ICipher CreateCipher(ushort id)
         {
+            Initialize();
             if (!CipherTypes.ContainsKey(id))
                 throw new Exception(string.Format("Unknown cipher id {0}/0x{0:X2}", id));
 
@@ -264,6 +264,7 @@ namespace Bifrost
 
         public static IKeyExchange CreateKeyExchange(ushort id)
         {
+            Initialize();
             if (!KeyExchangeTypes.ContainsKey(id))
                 throw new Exception(string.Format("Unknown key exchange id {0}/0x{0:X2}", id));
 
@@ -272,6 +273,7 @@ namespace Bifrost
 
         public static IMAC CreateMAC(ushort id)
         {
+            Initialize();
             if (!MACTypes.ContainsKey(id))
                 throw new Exception(string.Format("Unknown MAC id {0}/0x{0:X2}", id));
 
@@ -280,6 +282,10 @@ namespace Bifrost
 
         public static void Initialize()
         {
+
+            if (Initialized)
+                return;
+
             RegisterCipher(AesCbcCipher.Identifier, typeof(AesCbcCipher));
             RegisterCipher(IdentityCipher.Identifier, typeof(IdentityCipher));
             RegisterCipher(AesGcmCipher.Identifier, typeof(AesGcmCipher));

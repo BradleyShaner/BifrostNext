@@ -10,7 +10,7 @@ using Org.BouncyCastle.Crypto.Modes;
 using Org.BouncyCastle.Crypto.Engines;
 using Org.BouncyCastle.Crypto.Parameters;
 
-using NLog;
+
 using Bifrost.Ciphers;
 using System.Threading;
 using Bifrost.KeyExchanges;

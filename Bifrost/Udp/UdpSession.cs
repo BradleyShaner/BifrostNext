@@ -7,7 +7,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using System.Threading;
-using NLog;
+
 using System.IO;
 using System.Runtime.CompilerServices;
 

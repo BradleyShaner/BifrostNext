@@ -1,4 +1,4 @@
-﻿using NLog;
+﻿
 using Org.BouncyCastle.Asn1.Nist;
 using Org.BouncyCastle.Asn1.X9;
 using Org.BouncyCastle.Crypto;

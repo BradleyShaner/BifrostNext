@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using Bifrost.WebSockets;
 using System.Net.Sockets;
 using System.Threading;
-using NLog;
 using System.Net;
 
 namespace Bifrost

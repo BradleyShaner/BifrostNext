@@ -3,7 +3,7 @@ using System.Threading;
 using System.Reflection;
 using System.Diagnostics;
 
-using NLog;
+
 
 namespace Bifrost
 {

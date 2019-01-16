@@ -3,7 +3,6 @@
 
 // also, too much microoptimization because this is slow for some reason
 
-using NLog;
 using System;
 using System.Collections.Generic;
 using System.IO;
