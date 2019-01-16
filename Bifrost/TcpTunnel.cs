@@ -1,10 +1,5 @@
-﻿
-using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System;
 using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Bifrost
 {
@@ -15,24 +10,23 @@ namespace Bifrost
     {
         public Logger Log = LogManager.GetCurrentClassLogger();
 
+        public bool Closed { get; set; }
         public TcpClient Connection { get; set; }
         public NetworkStream NetworkStream { get; set; }
 
-        public bool Closed { get; set; }
-
         #region Statistics
-        public ulong PacketsDropped { get => 0; }
-        public ulong PacketsReceived { get => 0; }
 
-        public long RawBytesSent { get; set; }
+        public long DataBytesReceived { get; set; }
         public long DataBytesSent { get; set; }
-        public long ProtocolBytesSent
+
+        public double OverheadReceived
         {
             get
             {
-                return RawBytesSent - DataBytesSent;
+                return (double)ProtocolBytesReceived / (double)RawBytesReceived;
             }
         }
+
         public double OverheadSent
         {
             get
@@ -41,8 +35,9 @@ namespace Bifrost
             }
         }
 
-        public long RawBytesReceived { get; set; }
-        public long DataBytesReceived { get; set; }
+        public ulong PacketsDropped { get => 0; }
+        public ulong PacketsReceived { get => 0; }
+
         public long ProtocolBytesReceived
         {
             get
@@ -50,14 +45,19 @@ namespace Bifrost
                 return RawBytesReceived - DataBytesReceived;
             }
         }
-        public double OverheadReceived
+
+        public long ProtocolBytesSent
         {
             get
             {
-                return (double)ProtocolBytesReceived / (double)RawBytesReceived;
+                return RawBytesSent - DataBytesSent;
             }
         }
-        #endregion
+
+        public long RawBytesReceived { get; set; }
+        public long RawBytesSent { get; set; }
+
+        #endregion Statistics
 
         /// <summary>
         /// Construct a new TcpTunnel with the provided parameters.
@@ -73,20 +73,20 @@ namespace Bifrost
         }
 
         /// <summary>
-        /// Initializes the internal streams used for communication.
-        /// </summary>
-        public void InitializeStreams()
-        {
-            NetworkStream = Connection.GetStream();
-        }
-
-        /// <summary>
         /// Closes the TcpTunnel. This stuff is a bit tricky(yes, trickier than the rest of the project!), and hasn't been tested a lot yet, so YMMV.
         /// </summary>
         public void Close()
         {
             Connection.Close();
             Closed = true;
+        }
+
+        /// <summary>
+        /// Initializes the internal streams used for communication.
+        /// </summary>
+        public void InitializeStreams()
+        {
+            NetworkStream = Connection.GetStream();
         }
 
         /// <summary>

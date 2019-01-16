@@ -1,31 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading;
 
 namespace Bifrost
 {
     public class SizeQueue<T>
     {
-        private readonly Queue<T> queue = new Queue<T>();
         private readonly int maxSize;
-        public SizeQueue(int maxSize) { this.maxSize = maxSize; }
+        private readonly Queue<T> queue = new Queue<T>();
 
-        public void Enqueue(T item)
+        public SizeQueue(int maxSize)
         {
-            lock (queue)
-            {
-                while (queue.Count >= maxSize)
-                {
-                    Monitor.Wait(queue);
-                }
-                queue.Enqueue(item);
-                if (queue.Count == 1)
-                {
-                    // wake up any blocked dequeue
-                    Monitor.PulseAll(queue);
-                }
-            }
+            this.maxSize = maxSize;
         }
+
         public T Dequeue()
         {
             lock (queue)
@@ -43,6 +30,22 @@ namespace Bifrost
                 return item;
             }
         }
+
+        public void Enqueue(T item)
+        {
+            lock (queue)
+            {
+                while (queue.Count >= maxSize)
+                {
+                    Monitor.Wait(queue);
+                }
+                queue.Enqueue(item);
+                if (queue.Count == 1)
+                {
+                    // wake up any blocked dequeue
+                    Monitor.PulseAll(queue);
+                }
+            }
+        }
     }
 }
-

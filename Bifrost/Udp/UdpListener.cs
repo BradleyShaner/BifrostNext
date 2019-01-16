@@ -1,5 +1,4 @@
-﻿
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -8,25 +7,56 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Bifrost.Udp
 {
+    internal enum UdpCapabilities
+    {
+        L7Fragmentation = 0x01
+    }
+
+    public class StructuralEqualityComparer<T> : IEqualityComparer<T>
+    {
+        private static StructuralEqualityComparer<T> defaultComparer;
+
+        public static StructuralEqualityComparer<T> Default
+        {
+            get
+            {
+                StructuralEqualityComparer<T> comparer = defaultComparer;
+                if (comparer == null)
+                {
+                    comparer = new StructuralEqualityComparer<T>();
+                    defaultComparer = comparer;
+                }
+                return comparer;
+            }
+        }
+
+        public bool Equals(T x, T y)
+        {
+            return StructuralComparisons.StructuralEqualityComparer.Equals(x, y);
+        }
+
+        public int GetHashCode(T obj)
+        {
+            return StructuralComparisons.StructuralEqualityComparer.GetHashCode(obj);
+        }
+    }
+
     public class UdpListener : IListener
     {
         public Logger Log = LogManager.GetCurrentClassLogger();
 
-        public UdpClient Socket { get; set; }
-        public BlockingCollection<ITunnel> Queue { get; set; }
+        internal Dictionary<byte[], UdpSession> Sessions = new Dictionary<byte[], UdpSession>(new StructuralEqualityComparer<byte[]>());
+        private ManualResetEvent listener_stop = new ManualResetEvent(false);
+        private Thread listener_thread;
         public IPEndPoint EndPoint { get; set; }
         public int Port { get; set; }
-
-        public bool Running { get; set; }
+        public BlockingCollection<ITunnel> Queue { get; set; }
         public bool QueueConnections { get; set; }
-        private Thread listener_thread;
-        private ManualResetEvent listener_stop = new ManualResetEvent(false);
-
-        internal Dictionary<byte[], UdpSession> Sessions = new Dictionary<byte[], UdpSession>(new StructuralEqualityComparer<byte[]>());
+        public bool Running { get; set; }
+        public UdpClient Socket { get; set; }
 
         public UdpListener(IPAddress listen, int port, bool queue = true)
         {
@@ -44,38 +74,16 @@ namespace Bifrost.Udp
         public UdpListener(IPEndPoint ep) :
             this(ep.Address, ep.Port)
         {
-
         }
 
-        public void Start()
+        public static byte[] EndPointToTuple(IPEndPoint ep)
         {
-            if (Running)
-                return;
-            
-            Socket = new UdpClient(EndPoint);
-            Socket.DontFragment = false;
+            byte[] tuple = new byte[6];
 
-            listener_stop.Reset();
+            Array.Copy(ep.Address.GetAddressBytes(), tuple, 4);
+            Array.Copy(BitConverter.GetBytes((ushort)ep.Port), 0, tuple, 4, 2);
 
-            listener_thread = new Thread(new ThreadStart(HandlePackets));
-            listener_thread.Start();
-
-            Running = true;
-        }
-
-        public void Stop()
-        {
-            if (!Running)
-                return;
-
-            listener_stop.Set();
-            Thread.Sleep(100);
-
-            listener_thread.Abort();
-
-            Running = false;
-
-            Socket.Close();
+            return tuple;
         }
 
         public ITunnel Accept()
@@ -86,11 +94,6 @@ namespace Bifrost.Udp
         public void Close(IPEndPoint endpoint)
         {
             Sessions.Remove(EndPointToTuple(endpoint));
-        }
-
-        internal void Close(UdpSession session)
-        {
-            Sessions.Remove(EndPointToTuple(session.EndPoint));
         }
 
         public void HandlePackets()
@@ -111,7 +114,7 @@ namespace Bifrost.Udp
 
                         bool mtu_probe = true;
 
-                        for(int i = 0; i < 4; i++)
+                        for (int i = 0; i < 4; i++)
                         {
                             if (buf[i] != mtu_special[i])
                             {
@@ -127,7 +130,7 @@ namespace Bifrost.Udp
                             continue;
                         }
 
-                        if(session.L7FragmentationCapable && !session.NegotiatingMTU)
+                        if (session.L7FragmentationCapable && !session.NegotiatingMTU)
                         {
                             session.HandleFragment(buf);
                         }
@@ -176,13 +179,13 @@ namespace Bifrost.Udp
                                 return;
                             }
 
-                            if(ack_msg.Store.ContainsKey("capabilities"))
+                            if (ack_msg.Store.ContainsKey("capabilities"))
                             {
                                 session.L7FragmentationCapable = ack_msg.Store["capabilities"].Contains((byte)UdpCapabilities.L7Fragmentation);
                             }
 
                             Log.Info("Accepted UDP connection on {0}{1}", receive_ep, QueueConnections ? ", queueing session" : "");
-                            
+
                             if (session.L7FragmentationCapable)
                             {
                                 Log.Info("Negotiating MTU...");
@@ -205,52 +208,45 @@ namespace Bifrost.Udp
             }
         }
 
-        public static byte[] EndPointToTuple(IPEndPoint ep)
+        public void Start()
         {
-            byte[] tuple = new byte[6];
+            if (Running)
+                return;
 
-            Array.Copy(ep.Address.GetAddressBytes(), tuple, 4);
-            Array.Copy(BitConverter.GetBytes((ushort)ep.Port), 0, tuple, 4, 2);
+            Socket = new UdpClient(EndPoint);
+            Socket.DontFragment = false;
 
-            return tuple;
+            listener_stop.Reset();
+
+            listener_thread = new Thread(new ThreadStart(HandlePackets));
+            listener_thread.Start();
+
+            Running = true;
+        }
+
+        public void Stop()
+        {
+            if (!Running)
+                return;
+
+            listener_stop.Set();
+            Thread.Sleep(100);
+
+            listener_thread.Abort();
+
+            Running = false;
+
+            Socket.Close();
         }
 
         public override string ToString()
         {
             return ((IPEndPoint)Socket.Client.LocalEndPoint).ToString();
         }
-    }
 
-    enum UdpCapabilities
-    {
-        L7Fragmentation = 0x01
-    }
-
-    public class StructuralEqualityComparer<T> : IEqualityComparer<T>
-    {
-        public bool Equals(T x, T y)
+        internal void Close(UdpSession session)
         {
-            return StructuralComparisons.StructuralEqualityComparer.Equals(x, y);
-        }
-
-        public int GetHashCode(T obj)
-        {
-            return StructuralComparisons.StructuralEqualityComparer.GetHashCode(obj);
-        }
-
-        private static StructuralEqualityComparer<T> defaultComparer;
-        public static StructuralEqualityComparer<T> Default
-        {
-            get
-            {
-                StructuralEqualityComparer<T> comparer = defaultComparer;
-                if (comparer == null)
-                {
-                    comparer = new StructuralEqualityComparer<T>();
-                    defaultComparer = comparer;
-                }
-                return comparer;
-            }
+            Sessions.Remove(EndPointToTuple(session.EndPoint));
         }
     }
 }

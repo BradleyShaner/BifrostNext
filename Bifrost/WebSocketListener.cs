@@ -1,29 +1,22 @@
-﻿
-using System;
+﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Bifrost
 {
     public class WebSocketListener : IListener
     {
+        private ManualResetEvent _stopped = new ManualResetEvent(false);
         private Logger Log = LogManager.GetCurrentClassLogger();
 
+        public string Host { get; set; }
         public TcpListener Listener { get; set; }
 
-        public bool Server { get; set; }
-        public string Host { get; set; }
         public string Origin { get; set; }
-
         public BlockingCollection<ITunnel> Queue { get; set; }
-
-        private ManualResetEvent _stopped = new ManualResetEvent(false);
+        public bool Server { get; set; }
 
         public WebSocketListener(IPEndPoint ep, string host, string origin, bool server = true)
         {
@@ -36,6 +29,11 @@ namespace Bifrost
             Queue = new BlockingCollection<ITunnel>();
 
             Utilities.StartThread(AcceptThread);
+        }
+
+        public ITunnel Accept()
+        {
+            return Queue.Take();
         }
 
         public void AcceptThread()
@@ -59,11 +57,6 @@ namespace Bifrost
 
                 Thread.Sleep(100);
             }
-        }
-
-        public ITunnel Accept()
-        {
-            return Queue.Take();
         }
 
         public void Start()

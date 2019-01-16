@@ -1,20 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Bifrost.MACs
+﻿namespace Bifrost.MACs
 {
     public interface IMAC
     {
-        ushort MACIdentifier { get; }
         string HumanName { get; }
-        int SecretBytes { get; }
+        ushort MACIdentifier { get; }
         int OutputLength { get; }
-
-        void Initialize(byte[] secret);
+        int SecretBytes { get; }
 
         byte[] Calculate(byte[] message);
+
+        void Initialize(byte[] secret);
     }
 }

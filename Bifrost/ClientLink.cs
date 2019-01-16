@@ -1,21 +1,11 @@
-﻿using System;
-using System.Text;
-using System.IO;
-using System.Linq;
-
-using Org.BouncyCastle.OpenSsl;
-using Org.BouncyCastle.Security;
-using Org.BouncyCastle.Crypto;
-using Org.BouncyCastle.Crypto.Modes;
-using Org.BouncyCastle.Crypto.Engines;
-using Org.BouncyCastle.Crypto.Parameters;
-
-
-using Bifrost.Ciphers;
-using System.Threading;
-using Bifrost.KeyExchanges;
-using System.Collections.Generic;
+﻿using Bifrost.Ciphers;
 using Bifrost.MACs;
+using Org.BouncyCastle.Crypto.Parameters;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading;
 
 namespace Bifrost
 {
@@ -23,12 +13,12 @@ namespace Bifrost
     {
         private Logger Log = LogManager.GetCurrentClassLogger();
         public bool AuthenticateSelf { get; set; }
-        
+
         /// <summary>
         /// Creates a new EncryptedLink object from the perspective of a server.
         /// </summary>
         /// <param name="tunnel">The ITunnel to use.</param>
-        /// <param name="auth_self">If auth_self is set to true, the loaded RSA keys are used to authenticate ourselves to the server. 
+        /// <param name="auth_self">If auth_self is set to true, the loaded RSA keys are used to authenticate ourselves to the server.
         /// If auth_client is set to true on the server, auth_self must also be true, otherwise the handshake will fail.</param>
         public ClientLink(ITunnel tunnel, bool auth_self = true)
         {
@@ -57,7 +47,7 @@ namespace Bifrost
                 done.Set();
             });
 
-            if(!done.WaitOne(10000))
+            if (!done.WaitOne(10000))
             {
                 Close();
                 Thread.Sleep(100);
@@ -159,7 +149,7 @@ namespace Bifrost
             DateTime timestamp_dt = MessageHelpers.GetDateTime(BitConverter.ToInt64(timestamp, 0));
             TimeSpan difference = (DateTime.UtcNow - timestamp_dt).Duration();
 
-            if(!timestamp.SequenceEqual(ecdh_public_key.Skip(ecdh_public_key.Length - 8)))
+            if (!timestamp.SequenceEqual(ecdh_public_key.Skip(ecdh_public_key.Length - 8)))
             {
                 var result = new HandshakeResult(HandshakeResultType.UntrustedTimestamp, "Timestamp mismatch between ECDH public key and explicit timestamp. Terminating handshake.");
                 Log.Error(result.Message);
@@ -167,7 +157,7 @@ namespace Bifrost
                 return result;
             }
 
-            if(difference > MaximumTimeMismatch)
+            if (difference > MaximumTimeMismatch)
             {
                 var result = new HandshakeResult(HandshakeResultType.ReplayAttack, "Timestamp difference between client and server exceeds allowed window of {0}(provided timestamp is {1}, our clock is {2}). Terminating handshake.", MaximumTimeMismatch, timestamp_dt, DateTime.UtcNow);
                 Log.Error(result.Message);
@@ -213,4 +203,3 @@ namespace Bifrost
         }
     }
 }
-

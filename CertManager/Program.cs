@@ -1,23 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.IO;
-using System.Security.Cryptography;
-
+﻿using Bifrost;
+using NDesk.Options;
 using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Security;
-
-using NDesk.Options;
-
-using Bifrost;
+using System;
+using System.IO;
+using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace CertManager
 {
-    class Program
+    internal class Program
     {
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
             string action = "";
 
@@ -160,25 +155,25 @@ namespace CertManager
             Console.WriteLine("CertManager done. Exiting...");
         }
 
-        static void WriteFile(string path, byte[] data)
-        {
-            File.WriteAllBytes(path, data);
-
-            Console.WriteLine("Wrote {0} bytes to \"{1}\".", data.Length, path);
-        }
-
-        static void WriteFile(string path, string contents)
-        {
-            WriteFile(path, Encoding.UTF8.GetBytes(contents));
-        }
-
-        static void ShowHelp(OptionSet set)
+        private static void ShowHelp(OptionSet set)
         {
             Console.WriteLine();
             Console.WriteLine("Usage: certmanager --action generate-ca|generate-key|sign-key --ca-path /path/to/ca [OPTIONS]");
             Console.WriteLine("Generates and signs certificates for use with Bifrost.");
             Console.WriteLine();
             set.WriteOptionDescriptions(Console.Out);
+        }
+
+        private static void WriteFile(string path, byte[] data)
+        {
+            File.WriteAllBytes(path, data);
+
+            Console.WriteLine("Wrote {0} bytes to \"{1}\".", data.Length, path);
+        }
+
+        private static void WriteFile(string path, string contents)
+        {
+            WriteFile(path, Encoding.UTF8.GetBytes(contents));
         }
     }
 }

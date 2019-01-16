@@ -1,21 +1,11 @@
-﻿using System;
-using System.Text;
-using System.IO;
-using System.Linq;
-
-using Org.BouncyCastle.OpenSsl;
-using Org.BouncyCastle.Security;
-using Org.BouncyCastle.Crypto;
-using Org.BouncyCastle.Crypto.Modes;
-using Org.BouncyCastle.Crypto.Engines;
-using Org.BouncyCastle.Crypto.Parameters;
-
-
-using Bifrost.Ciphers;
-using System.Threading;
-using Bifrost.KeyExchanges;
-using System.Collections.Generic;
+﻿using Bifrost.Ciphers;
 using Bifrost.MACs;
+using Org.BouncyCastle.Crypto.Parameters;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading;
 
 namespace Bifrost
 {
@@ -103,7 +93,7 @@ namespace Bifrost
 
             Log.Debug("{0} bytes of allowed suites", suite_data.Length);
 
-            for(int i = 0; i < suite_data.Length; i += CipherSuiteIdentifier.IdentifierLength)
+            for (int i = 0; i < suite_data.Length; i += CipherSuiteIdentifier.IdentifierLength)
             {
                 peer_suites.Add(new CipherSuiteIdentifier(suite_data, i));
             }
@@ -112,9 +102,9 @@ namespace Bifrost
 
             var suite_scores = new Dictionary<CipherSuiteIdentifier, int>();
 
-            for(int i = 0; i < allowed_suites.Count; i++)
+            for (int i = 0; i < allowed_suites.Count; i++)
             {
-                for(int j = 0; j < peer_suites.Count; j++)
+                for (int j = 0; j < peer_suites.Count; j++)
                 {
                     var our_suite = allowed_suites[i];
                     var their_suite = peer_suites[j];
@@ -216,4 +206,3 @@ namespace Bifrost
         }
     }
 }
-

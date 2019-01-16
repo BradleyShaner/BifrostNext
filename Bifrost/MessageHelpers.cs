@@ -1,11 +1,9 @@
 ﻿using System;
-using System.Text;
-using System.Linq;
-
-using System.Security.Cryptography;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Bifrost
 {
@@ -13,23 +11,7 @@ namespace Bifrost
     {
         public static MD5CryptoServiceProvider MD5 = new MD5CryptoServiceProvider();
 
-        /// <summary>
-        /// Creates and returns a new message of type MessageType.Data with the provided data.
-        /// </summary>
-        /// <param name="data">The data to include in the message.</param>
-        /// <returns>The created message.</returns>
-        public static Message CreateDataMessage(byte[] data)
-        {
-            Message msg = new Message(MessageType.Data, 0x00);
-
-            msg.Store["data"] = data;
-            //lock (MD5)
-            //{
-            //    msg.Store["checksum"] = MD5.ComputeHash(data);
-            //}
-
-            return msg;
-        }
+        private static DateTime Epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
         /// <summary>
         /// Creates a new handshake request(client-side) and returns it.
@@ -64,42 +46,13 @@ namespace Bifrost
             return msg;
         }
 
-        public static Message CreateClientHello(ClientLink link, List<CipherSuiteIdentifier> allowed_suites)
-        {
-            Message msg = new Message(MessageType.ClientHello, 0x00);
-
-            MemoryStream ms = new MemoryStream();
-            
-            for(int i = 0; i < allowed_suites.Count; i++)
-            {
-                byte[] serialized = allowed_suites[i].Serialize();
-
-                ms.Write(serialized, 0, serialized.Length);
-            }
-
-            msg.Store["allowed_suites"] = ms.ToArray();
-
-            ms.Close();
-
-            return msg;
-        }
-
-        public static Message CreateServerHello(ServerLink link, CipherSuiteIdentifier chosen_suite)
-        {
-            Message msg = new Message(MessageType.ServerHello, 0x00);
-
-            msg.Store["chosen_suite"] = chosen_suite == null ? new byte[0] : chosen_suite.Serialize();
-
-            return msg;
-        }
-
         /// <summary>
         /// Creates a new handshake response(server-side) and returns it.
         /// </summary>
         /// <param name="link">The ServerLink to create the resposne packet for.</param>
         /// <returns>The created message.</returns>
         public static Message CreateAuthResponse(EncryptedLink link)
-        { 
+        {
             Message msg = new Message(MessageType.AuthResponse, 0x00);
 
             byte[] timestamp = GetTimestamp();
@@ -117,16 +70,61 @@ namespace Bifrost
             return msg;
         }
 
-        static DateTime Epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        public static Message CreateClientHello(ClientLink link, List<CipherSuiteIdentifier> allowed_suites)
+        {
+            Message msg = new Message(MessageType.ClientHello, 0x00);
+
+            MemoryStream ms = new MemoryStream();
+
+            for (int i = 0; i < allowed_suites.Count; i++)
+            {
+                byte[] serialized = allowed_suites[i].Serialize();
+
+                ms.Write(serialized, 0, serialized.Length);
+            }
+
+            msg.Store["allowed_suites"] = ms.ToArray();
+
+            ms.Close();
+
+            return msg;
+        }
+
+        /// <summary>
+        /// Creates and returns a new message of type MessageType.Data with the provided data.
+        /// </summary>
+        /// <param name="data">The data to include in the message.</param>
+        /// <returns>The created message.</returns>
+        public static Message CreateDataMessage(byte[] data)
+        {
+            Message msg = new Message(MessageType.Data, 0x00);
+
+            msg.Store["data"] = data;
+            //lock (MD5)
+            //{
+            //    msg.Store["checksum"] = MD5.ComputeHash(data);
+            //}
+
+            return msg;
+        }
+
+        public static Message CreateServerHello(ServerLink link, CipherSuiteIdentifier chosen_suite)
+        {
+            Message msg = new Message(MessageType.ServerHello, 0x00);
+
+            msg.Store["chosen_suite"] = chosen_suite == null ? new byte[0] : chosen_suite.Serialize();
+
+            return msg;
+        }
+
+        public static DateTime GetDateTime(long timestamp)
+        {
+            return Epoch.AddMilliseconds(timestamp);
+        }
 
         public static byte[] GetTimestamp()
         {
             return BitConverter.GetBytes((long)(DateTime.UtcNow - Epoch).TotalMilliseconds);
         }
-        public static DateTime GetDateTime(long timestamp)
-        {
-            return Epoch.AddMilliseconds(timestamp);
-        }
     }
 }
-

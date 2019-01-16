@@ -1,19 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Bifrost.KeyExchanges
+﻿namespace Bifrost.KeyExchanges
 {
     public interface IKeyExchange
     {
-        ushort KeyExchangeIdentifier { get; }
         string HumanName { get; }
+        ushort KeyExchangeIdentifier { get; }
+
+        byte[] FinalizeKeyExchange(byte[] peer_pk);
 
         byte[] GetPublicKey();
 
-        byte[] FinalizeKeyExchange(byte[] peer_pk);
         void Initialize();
     }
 }

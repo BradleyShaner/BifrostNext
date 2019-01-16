@@ -1,25 +1,22 @@
-﻿using System;
-
-namespace Bifrost
+﻿namespace Bifrost
 {
     /// <summary>
     /// Describes a common interface that all tunnels should implement.
     /// </summary>
     public interface ITunnel
     {
-        long RawBytesSent { get; set; }
-        long DataBytesSent { get; set; }
-        long RawBytesReceived { get; set; }
+        bool Closed { get; set; }
         long DataBytesReceived { get; set; }
-
+        long DataBytesSent { get; set; }
         ulong PacketsDropped { get; }
         ulong PacketsReceived { get; }
-
-        bool Closed { get; set; }
-        void Send(byte[] data);
-        byte[] Receive();
+        long RawBytesReceived { get; set; }
+        long RawBytesSent { get; set; }
 
         void Close();
+
+        byte[] Receive();
+
+        void Send(byte[] data);
     }
 }
-

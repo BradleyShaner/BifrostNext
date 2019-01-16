@@ -4,12 +4,9 @@
 // also, too much microoptimization because this is slow for some reason
 
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Bifrost.WebSockets
 {
@@ -27,7 +24,6 @@ namespace Bifrost.WebSockets
 
         public WebSocketMessage()
         {
-
         }
 
         public byte[] Serialize()
@@ -92,7 +88,7 @@ namespace Bifrost.WebSockets
             Array.Copy(payload, 0, ret, index, payload.Length);
             index += payload.Length;
 
-            if(masked)
+            if (masked)
             {
                 DecodeMask(ret, mask, index - payload.Length);
             }
@@ -110,8 +106,8 @@ namespace Bifrost.WebSockets
             ret.Opcode = opcode;
             ret.Masked = mask;
             ret.Final = true;
-            
-            if(mask)
+
+            if (mask)
             {
                 ret.Mask = new byte[4];
                 RNG.GetBytes(ret.Mask);
@@ -200,7 +196,7 @@ namespace Bifrost.WebSockets
             return FromStream(ret, stream);
         }
 
-        static byte[] DecodeMask(byte[] data, byte[] mask, int start = 0)
+        private static byte[] DecodeMask(byte[] data, byte[] mask, int start = 0)
         {
             for (int i = 0; i < data.Length - start; i++)
                 data[i + start] ^= mask[i % 4];

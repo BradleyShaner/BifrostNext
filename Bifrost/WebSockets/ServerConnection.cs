@@ -1,18 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Bifrost.WebSockets
 {
     public delegate void DataReceived(object sender, WebSocketMessage message, byte[] payload);
+
     public class ServerConnection : WebSocketConnection
     {
-        static Logger Log = LogManager.GetCurrentClassLogger();
+        private static Logger Log = LogManager.GetCurrentClassLogger();
 
         public ServerConnection(TcpClient client)
         {
@@ -48,7 +47,7 @@ namespace Bifrost.WebSockets
 
                 foreach (var str in lines)
                     Log.Warn("Raw HTTP header: \"{0}\"", str);
-                
+
                 foreach (var header in headers)
                     Log.Warn("Parsed HTTP header: \"{0}: {1}\"", header.Key, header.Value);
 

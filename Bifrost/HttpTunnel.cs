@@ -1,13 +1,8 @@
 ﻿using System;
-using System.Text;
 using System.IO;
 using System.IO.Compression;
-using System.Net;
 using System.Net.Sockets;
-
-using System.Threading;
-using System.Threading.Tasks;
-
+using System.Text;
 
 namespace Bifrost
 {
@@ -16,37 +11,31 @@ namespace Bifrost
     /// </summary>
     public class HttpTunnel : ITunnel
     {
-        public bool ServerSide { get; set; }
-        public TcpClient Connection { get; set; }
-
-        public bool Compression { get; set; }
-        public bool Base64 { get; set; }
-
         public bool ForceFlush = false;
-
+        private byte[] Header;
+        private Logger Log = LogManager.GetCurrentClassLogger();
+        public bool Base64 { get; set; }
+        public bool Closed { get; set; }
+        public bool Compression { get; set; }
+        public TcpClient Connection { get; set; }
+        public bool ServerSide { get; set; }
+        private DeflateStream CompressState { get; set; }
         private NetworkStream NetworkStream { get; set; }
         private StreamReader StreamReader { get; set; }
 
-        private byte[] Header;
-
-        private DeflateStream CompressState { get; set; }
-
-        public bool Closed { get; set; }
-
-        private Logger Log = LogManager.GetCurrentClassLogger();
-
         #region Statistics
-        public ulong PacketsDropped { get => 0; }
-        public ulong PacketsReceived { get => 0; }
-        public long RawBytesSent { get; set; }
+
+        public long DataBytesReceived { get; set; }
         public long DataBytesSent { get; set; }
-        public long ProtocolBytesSent
+
+        public double OverheadReceived
         {
             get
             {
-                return RawBytesSent - DataBytesSent;
+                return (double)ProtocolBytesReceived / (double)RawBytesReceived;
             }
         }
+
         public double OverheadSent
         {
             get
@@ -55,8 +44,9 @@ namespace Bifrost
             }
         }
 
-        public long RawBytesReceived { get; set; }
-        public long DataBytesReceived { get; set; }
+        public ulong PacketsDropped { get => 0; }
+        public ulong PacketsReceived { get => 0; }
+
         public long ProtocolBytesReceived
         {
             get
@@ -64,14 +54,19 @@ namespace Bifrost
                 return RawBytesReceived - DataBytesReceived;
             }
         }
-        public double OverheadReceived
+
+        public long ProtocolBytesSent
         {
             get
             {
-                return (double)ProtocolBytesReceived / (double)RawBytesReceived;
+                return RawBytesSent - DataBytesSent;
             }
         }
-        #endregion
+
+        public long RawBytesReceived { get; set; }
+        public long RawBytesSent { get; set; }
+
+        #endregion Statistics
 
         /// <summary>
         /// Constructs a new HttpTunnel with the provided parameters.
@@ -98,15 +93,6 @@ namespace Bifrost
         }
 
         /// <summary>
-        /// Initializes the internal streams used for communication.
-        /// </summary>
-        public void InitializeStreams()
-        {
-            NetworkStream = Connection.GetStream();
-            StreamReader = new StreamReader(NetworkStream);
-        }
-
-        /// <summary>
         /// Closes the HttpTunnel. This stuff is a bit tricky(yes, trickier than the rest of the project!), and hasn't been tested a lot yet, so YMMV.
         /// </summary>
         public void Close()
@@ -117,27 +103,12 @@ namespace Bifrost
         }
 
         /// <summary>
-        /// Generates and caches the header used to make our data look like HTTP requests/responses.
+        /// Initializes the internal streams used for communication.
         /// </summary>
-        private void GenerateHeader()
+        public void InitializeStreams()
         {
-            StringBuilder sb = new StringBuilder();
-
-            if (ServerSide)
-            {
-                sb.AppendLine("HTTP/1.1 206 Partial Content");
-                sb.AppendLine("Content-Type: text/html");
-                sb.AppendLine("Server: nginx");
-                sb.AppendLine("Connection: keep-alive");
-            }
-            else
-            {         
-                sb.AppendLine("GET / HTTP/1.1");
-                sb.AppendLine("Host: proxy.example.com");
-                sb.AppendLine("User-Agent: Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; FSL 7.0.7.01001)"); // act like Chrome 49 running on Windows 7
-            }
-
-            Header = Encoding.UTF8.GetBytes(sb.ToString().Replace("\r", ""));
+            NetworkStream = Connection.GetStream();
+            StreamReader = new StreamReader(NetworkStream);
         }
 
         /// <summary>
@@ -217,6 +188,36 @@ namespace Bifrost
         }
 
         /// <summary>
+        /// Sends a data chunk over the HttpTunnel. To-be-shim?
+        /// </summary>
+        /// <param name="data">The data to be sent.</param>
+        public void Send(byte[] data)
+        {
+            SendRaw(data);
+        }
+
+        /// <summary>
+        /// Wraps and sends raw data over the HttpTunnel.
+        /// </summary>
+        /// <param name="data">The data to be sent.</param>
+        public void SendRaw(byte[] data)
+        {
+            byte[] wrapped_data = WrapData(data);
+
+            lock (NetworkStream)
+            {
+                if (!NetworkStream.CanWrite || Closed)
+                    return;
+
+                NetworkStream.Write(wrapped_data, 0, wrapped_data.Length);
+                NetworkStream.Flush();
+            }
+
+            //DataBytesSent += data.Length;
+            RawBytesSent += wrapped_data.Length;
+        }
+
+        /// <summary>
         /// Wraps raw data inside HTTP headers to prepare it for sending.
         /// </summary>
         /// <param name="data">The data to wrap.</param>
@@ -250,33 +251,27 @@ namespace Bifrost
         }
 
         /// <summary>
-        /// Sends a data chunk over the HttpTunnel. To-be-shim?
+        /// Generates and caches the header used to make our data look like HTTP requests/responses.
         /// </summary>
-        /// <param name="data">The data to be sent.</param>
-        public void Send(byte[] data)
+        private void GenerateHeader()
         {
-            SendRaw(data);
-        }
+            StringBuilder sb = new StringBuilder();
 
-        /// <summary>
-        /// Wraps and sends raw data over the HttpTunnel.
-        /// </summary>
-        /// <param name="data">The data to be sent.</param>
-        public void SendRaw(byte[] data)
-        {
-            byte[] wrapped_data = WrapData(data);
-
-            lock (NetworkStream)
+            if (ServerSide)
             {
-                if (!NetworkStream.CanWrite || Closed)
-                    return;
-
-                NetworkStream.Write(wrapped_data, 0, wrapped_data.Length);
-                NetworkStream.Flush();
+                sb.AppendLine("HTTP/1.1 206 Partial Content");
+                sb.AppendLine("Content-Type: text/html");
+                sb.AppendLine("Server: nginx");
+                sb.AppendLine("Connection: keep-alive");
+            }
+            else
+            {
+                sb.AppendLine("GET / HTTP/1.1");
+                sb.AppendLine("Host: proxy.example.com");
+                sb.AppendLine("User-Agent: Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; FSL 7.0.7.01001)"); // act like Chrome 49 running on Windows 7
             }
 
-            //DataBytesSent += data.Length;
-            RawBytesSent += wrapped_data.Length;
+            Header = Encoding.UTF8.GetBytes(sb.ToString().Replace("\r", ""));
         }
     }
 }

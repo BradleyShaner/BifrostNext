@@ -7,94 +7,94 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Bifrost
 {
-    public class CipherSuiteIdentifier
+    public static class SuiteRegistry
     {
-        public const int IdentifierLength = 6;
+        public static Dictionary<ushort, Type> CipherTypes = new Dictionary<ushort, Type>();
+        public static bool Initialized = false;
+        public static Dictionary<ushort, Type> KeyExchangeTypes = new Dictionary<ushort, Type>();
+        public static Logger Log = LogManager.GetCurrentClassLogger();
+        public static Dictionary<ushort, Type> MACTypes = new Dictionary<ushort, Type>();
 
-        public ushort Cipher { get; set; }
-        public ushort KeyExchange { get; set; }
-        public ushort MAC { get; set; }
-
-        public CipherSuiteIdentifier(byte[] id)
-            : this(id, 0)
+        public static ICipher CreateCipher(ushort id)
         {
+            Initialize();
+            if (!CipherTypes.ContainsKey(id))
+                throw new Exception(string.Format("Unknown cipher id {0}/0x{0:X2}", id));
+
+            return (ICipher)Activator.CreateInstance(CipherTypes[id]);
         }
 
-        public CipherSuiteIdentifier(byte[] id, int start)
+        public static IKeyExchange CreateKeyExchange(ushort id)
         {
-            Cipher = BitConverter.ToUInt16(id, start);
-            KeyExchange = BitConverter.ToUInt16(id, start + 2);
-            MAC = BitConverter.ToUInt16(id, start + 4);
+            Initialize();
+            if (!KeyExchangeTypes.ContainsKey(id))
+                throw new Exception(string.Format("Unknown key exchange id {0}/0x{0:X2}", id));
+
+            return (IKeyExchange)Activator.CreateInstance(KeyExchangeTypes[id]);
         }
 
-        public CipherSuiteIdentifier(ushort cipher, ushort kex, ushort mac)
+        public static IMAC CreateMAC(ushort id)
         {
-            Cipher = cipher;
-            KeyExchange = kex;
-            MAC = mac;
+            Initialize();
+            if (!MACTypes.ContainsKey(id))
+                throw new Exception(string.Format("Unknown MAC id {0}/0x{0:X2}", id));
+
+            return (IMAC)Activator.CreateInstance(MACTypes[id]);
         }
 
-        public CipherSuite CreateSuite()
+        public static void Initialize()
         {
-            return new CipherSuite()
-            {
-                Cipher = SuiteRegistry.CreateCipher(Cipher),
-                KeyExchange = SuiteRegistry.CreateKeyExchange(KeyExchange),
-                MAC = SuiteRegistry.CreateMAC(MAC)
-            };
+            if (Initialized)
+                return;
+
+            RegisterCipher(AesCbcCipher.Identifier, typeof(AesCbcCipher));
+            RegisterCipher(IdentityCipher.Identifier, typeof(IdentityCipher));
+            RegisterCipher(AesGcmCipher.Identifier, typeof(AesGcmCipher));
+            RegisterCipher(ChaChaCipher.Identifier, typeof(ChaChaCipher));
+
+            RegisterKeyExchange(EcdhKeyExchange.Identifier, typeof(EcdhKeyExchange));
+
+            RegisterMAC(HMACSHA.Identifier, typeof(HMACSHA));
+            RegisterMAC(IdentityMAC.Identifier, typeof(IdentityMAC));
+
+            Initialized = true;
         }
 
-        public byte[] Serialize()
+        public static void RegisterCipher(ushort id, Type type)
         {
-            byte[] ret = new byte[IdentifierLength];
-            Array.Copy(BitConverter.GetBytes(Cipher), 0, ret, 0, 2);
-            Array.Copy(BitConverter.GetBytes(KeyExchange), 0, ret, 2, 2);
-            Array.Copy(BitConverter.GetBytes(MAC), 0, ret, 4, 2);
+            if (CipherTypes.ContainsKey(id))
+                Log.Warn("Entry {0}/0x{0:X2} being overridden in RegisterCipher!", id);
 
-            return ret;
+            CipherTypes[id] = type;
         }
 
-        public override bool Equals(object obj)
+        public static void RegisterKeyExchange(ushort id, Type type)
         {
-            if (obj == null || GetType() != obj.GetType())
-                return false;
+            if (KeyExchangeTypes.ContainsKey(id))
+                Log.Warn("Entry {0}/0x{0:X2} being overridden in RegisterKeyExchange!", id);
 
-            var suite = (CipherSuiteIdentifier)obj;
-
-            return Cipher == suite.Cipher && KeyExchange == suite.KeyExchange && MAC == suite.MAC;
+            KeyExchangeTypes[id] = type;
         }
 
-        public override int GetHashCode()
+        public static void RegisterMAC(ushort id, Type type)
         {
-            var arr = Serialize();
+            if (MACTypes.ContainsKey(id))
+                Log.Warn("Entry {0}/0x{0:X2} being overridden in RegisterMAC!", id);
 
-            if (arr == null || arr.Length == 0)
-                return 0;
-
-            var hash = 0;
-            for (var i = 0; i < arr.Length; i++)
-                hash = (hash << 3) | (hash >> (29)) ^ arr[i];
-
-            return hash;
-        }
-
-        public static bool operator ==(CipherSuiteIdentifier a, CipherSuiteIdentifier b)
-        {
-            return a.Equals(b);
-        }
-
-        public static bool operator !=(CipherSuiteIdentifier a, CipherSuiteIdentifier b)
-        {
-            return !a.Equals(b);
+            MACTypes[id] = type;
         }
     }
 
     public class CipherSuite
     {
+        public string HKDFAdditionalInfo =
+            "cipher-{0}\n" +
+            "application-bifrost\n" +
+            "key-exchange-{1}\n";
+
         public Logger Log = LogManager.GetCurrentClassLogger();
 
         public ICipher Cipher { get; set; }
@@ -103,75 +103,8 @@ namespace Bifrost
 
         public byte[] SharedSalt { get; set; }
 
-        public string HKDFAdditionalInfo =
-            "cipher-{0}\n" +
-            "application-bifrost\n" +
-            "key-exchange-{1}\n";
-
         internal CipherSuite()
         {
-
-        }
-
-        public byte[] Encrypt(byte[] data)
-        {
-            // encrypt-then-MAC to protect against oracle attacks
-
-            var ciphertext = Cipher.Encrypt(data);
-            var mac = MAC.Calculate(ciphertext);
-
-            var full_text = new byte[ciphertext.Length + mac.Length];
-
-            Array.Copy(ciphertext, 0, full_text, 0, ciphertext.Length);
-            Array.Copy(mac, 0, full_text, ciphertext.Length, mac.Length);
-
-            return full_text;
-        }
-
-        public byte[] Decrypt(byte[] data)
-        {
-            var ciphertext = new byte[data.Length - MAC.OutputLength];
-            var mac = new byte[MAC.OutputLength];
-
-            Array.Copy(data, 0, ciphertext, 0, ciphertext.Length);
-            Array.Copy(data, ciphertext.Length, mac, 0, mac.Length);
-
-            var calculated_mac = MAC.Calculate(ciphertext);
-
-            if (!calculated_mac.SequenceEqual(mac))
-            {
-                Log.Warn("Invalid MAC: Expected {0}, got {1} (len={2})", calculated_mac.ToUsefulString(), mac.ToUsefulString(), data.Length);
-                return new byte[0]; // corrupt MAC
-            }
-
-            return Cipher.Decrypt(data);
-        }
-
-        public byte[] GetKeyExchangeData()
-        {
-            return KeyExchange.GetPublicKey();
-        }
-
-        /// <summary>
-        /// Finalize the key exchange, preparing the CipherSuite for actual use.
-        /// </summary>
-        /// <param name="peer_pk">Our peer's private key/key exchange information.</param>
-        /// <returns>The raw shared secret.</returns>
-        public byte[] FinalizeKeyExchange(byte[] peer_pk)
-        {
-            var shared = KeyExchange.FinalizeKeyExchange(peer_pk);
-
-            HKDFAdditionalInfo = string.Format(HKDFAdditionalInfo, Cipher.HumanName, KeyExchange.HumanName);
-
-            Cipher.Initialize(CalculateHKDF(shared, Cipher.SecretBytes));
-            MAC.Initialize(CalculateHKDF(shared, MAC.SecretBytes));
-
-            return shared;
-        }
-
-        public void Initialize()
-        {
-            KeyExchange.Initialize();
         }
 
         /// <summary>
@@ -218,85 +151,148 @@ namespace Bifrost
                 return ret;
             }
         }
+
+        public byte[] Decrypt(byte[] data)
+        {
+            var ciphertext = new byte[data.Length - MAC.OutputLength];
+            var mac = new byte[MAC.OutputLength];
+
+            Array.Copy(data, 0, ciphertext, 0, ciphertext.Length);
+            Array.Copy(data, ciphertext.Length, mac, 0, mac.Length);
+
+            var calculated_mac = MAC.Calculate(ciphertext);
+
+            if (!calculated_mac.SequenceEqual(mac))
+            {
+                Log.Warn("Invalid MAC: Expected {0}, got {1} (len={2})", calculated_mac.ToUsefulString(), mac.ToUsefulString(), data.Length);
+                return new byte[0]; // corrupt MAC
+            }
+
+            return Cipher.Decrypt(data);
+        }
+
+        public byte[] Encrypt(byte[] data)
+        {
+            // encrypt-then-MAC to protect against oracle attacks
+
+            var ciphertext = Cipher.Encrypt(data);
+            var mac = MAC.Calculate(ciphertext);
+
+            var full_text = new byte[ciphertext.Length + mac.Length];
+
+            Array.Copy(ciphertext, 0, full_text, 0, ciphertext.Length);
+            Array.Copy(mac, 0, full_text, ciphertext.Length, mac.Length);
+
+            return full_text;
+        }
+
+        /// <summary>
+        /// Finalize the key exchange, preparing the CipherSuite for actual use.
+        /// </summary>
+        /// <param name="peer_pk">Our peer's private key/key exchange information.</param>
+        /// <returns>The raw shared secret.</returns>
+        public byte[] FinalizeKeyExchange(byte[] peer_pk)
+        {
+            var shared = KeyExchange.FinalizeKeyExchange(peer_pk);
+
+            HKDFAdditionalInfo = string.Format(HKDFAdditionalInfo, Cipher.HumanName, KeyExchange.HumanName);
+
+            Cipher.Initialize(CalculateHKDF(shared, Cipher.SecretBytes));
+            MAC.Initialize(CalculateHKDF(shared, MAC.SecretBytes));
+
+            return shared;
+        }
+
+        public byte[] GetKeyExchangeData()
+        {
+            return KeyExchange.GetPublicKey();
+        }
+
+        public void Initialize()
+        {
+            KeyExchange.Initialize();
+        }
     }
 
-    public static class SuiteRegistry
+    public class CipherSuiteIdentifier
     {
-        public static Logger Log = LogManager.GetCurrentClassLogger();
-        public static Dictionary<ushort, Type> CipherTypes = new Dictionary<ushort, Type>();
-        public static Dictionary<ushort, Type> KeyExchangeTypes = new Dictionary<ushort, Type>();
-        public static Dictionary<ushort, Type> MACTypes = new Dictionary<ushort, Type>();
+        public const int IdentifierLength = 6;
 
-        public static bool Initialized = false;
+        public ushort Cipher { get; set; }
+        public ushort KeyExchange { get; set; }
+        public ushort MAC { get; set; }
 
-        public static void RegisterCipher(ushort id, Type type)
+        public CipherSuiteIdentifier(byte[] id)
+            : this(id, 0)
         {
-            if (CipherTypes.ContainsKey(id))
-                Log.Warn("Entry {0}/0x{0:X2} being overridden in RegisterCipher!", id);
-
-            CipherTypes[id] = type;
         }
 
-        public static void RegisterKeyExchange(ushort id, Type type)
+        public CipherSuiteIdentifier(byte[] id, int start)
         {
-            if (KeyExchangeTypes.ContainsKey(id))
-                Log.Warn("Entry {0}/0x{0:X2} being overridden in RegisterKeyExchange!", id);
-
-            KeyExchangeTypes[id] = type;
+            Cipher = BitConverter.ToUInt16(id, start);
+            KeyExchange = BitConverter.ToUInt16(id, start + 2);
+            MAC = BitConverter.ToUInt16(id, start + 4);
         }
 
-        public static void RegisterMAC(ushort id, Type type)
+        public CipherSuiteIdentifier(ushort cipher, ushort kex, ushort mac)
         {
-            if (MACTypes.ContainsKey(id))
-                Log.Warn("Entry {0}/0x{0:X2} being overridden in RegisterMAC!", id);
-
-            MACTypes[id] = type;
+            Cipher = cipher;
+            KeyExchange = kex;
+            MAC = mac;
         }
 
-        public static ICipher CreateCipher(ushort id)
+        public static bool operator !=(CipherSuiteIdentifier a, CipherSuiteIdentifier b)
         {
-            Initialize();
-            if (!CipherTypes.ContainsKey(id))
-                throw new Exception(string.Format("Unknown cipher id {0}/0x{0:X2}", id));
-
-            return (ICipher)Activator.CreateInstance(CipherTypes[id]);
+            return !a.Equals(b);
         }
 
-        public static IKeyExchange CreateKeyExchange(ushort id)
+        public static bool operator ==(CipherSuiteIdentifier a, CipherSuiteIdentifier b)
         {
-            Initialize();
-            if (!KeyExchangeTypes.ContainsKey(id))
-                throw new Exception(string.Format("Unknown key exchange id {0}/0x{0:X2}", id));
-
-            return (IKeyExchange)Activator.CreateInstance(KeyExchangeTypes[id]);
+            return a.Equals(b);
         }
 
-        public static IMAC CreateMAC(ushort id)
+        public CipherSuite CreateSuite()
         {
-            Initialize();
-            if (!MACTypes.ContainsKey(id))
-                throw new Exception(string.Format("Unknown MAC id {0}/0x{0:X2}", id));
-
-            return (IMAC)Activator.CreateInstance(MACTypes[id]);
+            return new CipherSuite()
+            {
+                Cipher = SuiteRegistry.CreateCipher(Cipher),
+                KeyExchange = SuiteRegistry.CreateKeyExchange(KeyExchange),
+                MAC = SuiteRegistry.CreateMAC(MAC)
+            };
         }
 
-        public static void Initialize()
+        public override bool Equals(object obj)
         {
+            if (obj == null || GetType() != obj.GetType())
+                return false;
 
-            if (Initialized)
-                return;
+            var suite = (CipherSuiteIdentifier)obj;
 
-            RegisterCipher(AesCbcCipher.Identifier, typeof(AesCbcCipher));
-            RegisterCipher(IdentityCipher.Identifier, typeof(IdentityCipher));
-            RegisterCipher(AesGcmCipher.Identifier, typeof(AesGcmCipher));
-            RegisterCipher(ChaChaCipher.Identifier, typeof(ChaChaCipher));
+            return Cipher == suite.Cipher && KeyExchange == suite.KeyExchange && MAC == suite.MAC;
+        }
 
-            RegisterKeyExchange(EcdhKeyExchange.Identifier, typeof(EcdhKeyExchange));
+        public override int GetHashCode()
+        {
+            var arr = Serialize();
 
-            RegisterMAC(HMACSHA.Identifier, typeof(HMACSHA));
-            RegisterMAC(IdentityMAC.Identifier, typeof(IdentityMAC));
+            if (arr == null || arr.Length == 0)
+                return 0;
 
-            Initialized = true;
+            var hash = 0;
+            for (var i = 0; i < arr.Length; i++)
+                hash = (hash << 3) | (hash >> (29)) ^ arr[i];
+
+            return hash;
+        }
+
+        public byte[] Serialize()
+        {
+            byte[] ret = new byte[IdentifierLength];
+            Array.Copy(BitConverter.GetBytes(Cipher), 0, ret, 0, 2);
+            Array.Copy(BitConverter.GetBytes(KeyExchange), 0, ret, 2, 2);
+            Array.Copy(BitConverter.GetBytes(MAC), 0, ret, 4, 2);
+
+            return ret;
         }
     }
 }

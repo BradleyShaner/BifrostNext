@@ -1,35 +1,13 @@
 ﻿using System;
-using System.Threading;
-using System.Reflection;
 using System.Diagnostics;
-
-
+using System.Reflection;
+using System.Threading;
 
 namespace Bifrost
 {
     public class Utilities
     {
         private static Logger Log = LogManager.GetCurrentClassLogger();
-
-        /// <summary>
-        /// Starts a new thread with the given delegate. Useful for not getting bottlenecked by ThreadPool.
-        /// </summary>
-        /// <param name="action">The delegate to execute.</param>
-        /// <returns>The created thread.</returns>
-        public static Thread StartThread(Action action)
-        {
-            Thread thr = new Thread(() => action());
-            thr.Start();
-            return thr;
-        }
-
-        /// <summary>
-        /// Logs the Bifrost version as patched by AppVeyor.
-        /// </summary>
-        public static void LogVersion()
-        {
-            Log.Info("Bifrost version {0}", GetVersion());
-        }
 
         /// <summary>
         /// Returns the Bifrost version as patched by AppVeyor.
@@ -54,6 +32,26 @@ namespace Bifrost
                 version += " (unrecognized version, not an AppVeyor build)";
 
             return version;
+        }
+
+        /// <summary>
+        /// Logs the Bifrost version as patched by AppVeyor.
+        /// </summary>
+        public static void LogVersion()
+        {
+            Log.Info("Bifrost version {0}", GetVersion());
+        }
+
+        /// <summary>
+        /// Starts a new thread with the given delegate. Useful for not getting bottlenecked by ThreadPool.
+        /// </summary>
+        /// <param name="action">The delegate to execute.</param>
+        /// <returns>The created thread.</returns>
+        public static Thread StartThread(Action action)
+        {
+            Thread thr = new Thread(() => action());
+            thr.Start();
+            return thr;
         }
     }
 }

@@ -1,58 +1,48 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
-using System.Threading;
-
-using System.IO;
 using System.Runtime.CompilerServices;
+using System.Text;
+using System.Threading;
 
 namespace Bifrost.Udp
 {
     internal class UdpSession
     {
-        public UdpClient Socket { get; set; }
-        public UdpListener Listener { get; set; }
-        public IPEndPoint EndPoint { get; set; }
-
-        public int ForceMTU = 0;
+        public const int ACK = 0x04;
+        public const int SYN = 0x01;
+        public const int SYN_ACK = 0x02;
+        public static int HANDSHAKE_TIMEOUT = 5000;
         public ulong DroppedFragments = 0;
+        public int ForceMTU = 0;
         public ulong ReceivedFragments = 0;
-
-        internal BlockingCollection<byte[]> ReceiveQueue = new BlockingCollection<byte[]>();
-        internal bool L7FragmentationCapable = false;
-
-        internal List<int> GoodMTUs = new List<int>();
-        internal DateTime LastMTUProbe = DateTime.Now;
-
-        internal int PeerMTU = 0;
-        internal bool NegotiatingMTU = false;
-
+        internal const int FRAGMENT_SLOT_COUNT = 256;
+        internal const int MAX_FRAGMENT_LEN = 4096;
+        internal ushort[] FragmentFill = new ushort[FRAGMENT_SLOT_COUNT];
         internal ulong[] FragmentIDs = new ulong[FRAGMENT_SLOT_COUNT];
         internal byte[][] FragmentSlots = new byte[FRAGMENT_SLOT_COUNT][];
-        internal ushort[] FragmentFill = new ushort[FRAGMENT_SLOT_COUNT];
+        internal List<int> GoodMTUs = new List<int>();
+        internal bool L7FragmentationCapable = false;
+        internal DateTime LastMTUProbe = DateTime.Now;
+        internal bool NegotiatingMTU = false;
+        internal int PeerMTU = 0;
+        internal BlockingCollection<byte[]> ReceiveQueue = new BlockingCollection<byte[]>();
+        private ulong _fragment_index = 0;
+        private Logger Log = LogManager.GetCurrentClassLogger();
+        public IPEndPoint EndPoint { get; set; }
+        public UdpListener Listener { get; set; }
+        public UdpClient Socket { get; set; }
 
-        internal const int MAX_FRAGMENT_LEN = 4096;
-        internal const int FRAGMENT_SLOT_COUNT = 256;
-
-        Logger Log = LogManager.GetCurrentClassLogger();
-        
         public UdpSession(UdpClient socket, UdpListener listener, IPEndPoint endpoint)
         {
             Socket = socket;
             Listener = listener;
             EndPoint = endpoint;
         }
-
-        public const int SYN = 0x01;
-        public const int SYN_ACK = 0x02;
-        public const int ACK = 0x04;
-
-        public static int HANDSHAKE_TIMEOUT = 5000;
 
         public void Connect()
         {
@@ -78,87 +68,41 @@ namespace Bifrost.Udp
                 NegotiateMTU();
         }
 
-        internal void NegotiateMTU()
+        public byte[] Receive()
         {
-            NegotiatingMTU = true; // this is so Send() doesn't get confused
-            Socket.DontFragment = true;
-            Thread.Sleep(100); 
-            int start_mtu = 576;
-            int end_mtu = 1600;
-            int interval = 16;
+            var ret = ReceiveQueue.Take();
+            return ret;
+        }
 
-            int packet_count = 5;
+        public byte[] Receive(CancellationToken token)
+        {
+            var ret = ReceiveQueue.Take(token);
+            return ret;
+        }
 
-            if (ForceMTU != 0)
+        public byte[] Receive(int timeout)
+        {
+            var token = new CancellationTokenSource(timeout);
+            return Receive(token.Token);
+        }
+
+        public void Send(byte[] data)
+        {
+            if (L7FragmentationCapable && !NegotiatingMTU && PeerMTU > 0)
             {
-                Log.Warn("Forcing MTU to {0}, this might have unexpected effects.", ForceMTU);
-                start_mtu = ForceMTU;
-                end_mtu = start_mtu + interval;
-            }
-
-            var mtu_special = Encoding.ASCII.GetBytes("MTU ");
-
-            for(int mtu = start_mtu; mtu < end_mtu; mtu += interval)
-            {
-                Log.Trace("  probing MTU {0}...", mtu);
-
-                MemoryStream ms = new MemoryStream();
-                BinaryWriter bw = new BinaryWriter(ms);
-
-                bw.Write(mtu_special);
-                bw.Write(mtu);
-                bw.Write(new byte[mtu - ms.Position]);
-
-                var packet = ms.ToArray();
-
-                for(int i = 0; i < packet_count; i++)
+                if (data.Length > PeerMTU)
                 {
-                    try
-                    {
-                        Socket.Send(packet, packet.Length, EndPoint);
-                    }
-                    catch
-                    {
-
-                    }
+                    SendFragmented(data);
+                }
+                else
+                {
+                    var _tmp_buf = new byte[data.Length + 1];
+                    Array.Copy(data, 0, _tmp_buf, 1, data.Length);
+                    _Send(_tmp_buf);
                 }
             }
-
-            LastMTUProbe = DateTime.Now;
-            while ((DateTime.Now - LastMTUProbe).TotalMilliseconds < 500 && GoodMTUs.Count < 1000) // prevent attack
-                Thread.Sleep(100);
-
-            var good_mtu = 0;
-
-            if (ForceMTU != 0)
-                good_mtu = ForceMTU;
             else
-                good_mtu = GoodMTUs.Max();
-
-            Log.Info("Detected downlink MTU: {0}", good_mtu);
-
-            Message message = new Message(MessageType.Control, 0x53);
-            message.Store["mtu"] = BitConverter.GetBytes(good_mtu);
-
-            Send(message.Serialize());
-
-            var peer_mtu_msg = ReceiveMessage(5000);
-            
-            if(!peer_mtu_msg.CheckType(MessageType.Control, 0x53))
-            {
-                Log.Warn("Received message of type {0}/0x{1:X} while expecting MTU notification. pMTUd has failed.", peer_mtu_msg.Type, peer_mtu_msg.Subtype);
-                return;
-            }
-
-            PeerMTU = BitConverter.ToInt32(peer_mtu_msg.Store["mtu"], 0);
-
-            if (ForceMTU != 0)
-                PeerMTU = ForceMTU;
-
-            Log.Info("Detected uplink MTU: {0}", PeerMTU);
-
-            Socket.DontFragment = false;
-            NegotiatingMTU = false;
+                _Send(data);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -184,12 +128,12 @@ namespace Bifrost.Udp
 
             // packet loss reporting
 
-            if(slot_id_small == 0) // check whenever the "small" fragment slot identifier wraps around
+            if (slot_id_small == 0) // check whenever the "small" fragment slot identifier wraps around
             {
                 ulong max_fragment_id = 0;
                 ulong min_fragment_id = ulong.MaxValue;
 
-                for(int i = 0; i < FragmentIDs.Length; i++)
+                for (int i = 0; i < FragmentIDs.Length; i++)
                 {
                     var fragment_id = FragmentIDs[i];
 
@@ -208,7 +152,7 @@ namespace Bifrost.Udp
 
             var slot = FragmentSlots[slot_id_small];
 
-            if(FragmentSlots[slot_id_small] == null || FragmentIDs[slot_id_small] != slot_id || FragmentSlots[slot_id_small].Length != total_length)
+            if (FragmentSlots[slot_id_small] == null || FragmentIDs[slot_id_small] != slot_id || FragmentSlots[slot_id_small].Length != total_length)
             {
                 slot = FragmentSlots[slot_id_small] = new byte[total_length];
                 FragmentFill[slot_id_small] = 0;
@@ -218,7 +162,7 @@ namespace Bifrost.Udp
             Array.Copy(fragment, 13, FragmentSlots[slot_id_small], index, fragment_length);
             FragmentFill[slot_id_small] += (ushort)fragment_length;
 
-            if(FragmentFill[slot_id_small] == total_length)
+            if (FragmentFill[slot_id_small] == total_length)
             {
                 Push(FragmentSlots[slot_id_small]);
                 FragmentSlots[slot_id_small] = null;
@@ -227,42 +171,94 @@ namespace Bifrost.Udp
             ReceivedFragments++;
         }
 
-        private ulong _fragment_index = 0;
-
-        internal void SendFragmented(byte[] data)
+        internal void NegotiateMTU()
         {
-            if (data.Length > MAX_FRAGMENT_LEN)
-                throw new Exception("Datagram bigger than MAX_FRAGMENT_LEN");
+            NegotiatingMTU = true; // this is so Send() doesn't get confused
+            Socket.DontFragment = true;
+            Thread.Sleep(100);
+            int start_mtu = 576;
+            int end_mtu = 1600;
+            int interval = 16;
 
-            int fragment_count = (int)Math.Ceiling((float)data.Length / (float)PeerMTU);
+            int packet_count = 5;
 
-            byte[][] fragments = new byte[fragment_count][];
-
-            for(int i = 0, index = 0; i < fragment_count; i++)
+            if (ForceMTU != 0)
             {
-                int left = data.Length - index;
-
-                var fragment = new byte[Math.Min(PeerMTU, left + 13)];
-                fragment[0] = (byte)'f';
-                //fragment[1] = _fragment_index;
-
-                Array.Copy(BitConverter.GetBytes(_fragment_index), 0, fragment, 1, 8);
-
-                Array.Copy(BitConverter.GetBytes((ushort)data.Length), 0, fragment, 9, 2);
-                Array.Copy(BitConverter.GetBytes((ushort)index), 0, fragment, 11, 2);
-
-                Array.Copy(data, index, fragment, 13, fragment.Length - 13);
-                index += fragment.Length - 13;
-
-                fragments[i] = fragment;
+                Log.Warn("Forcing MTU to {0}, this might have unexpected effects.", ForceMTU);
+                start_mtu = ForceMTU;
+                end_mtu = start_mtu + interval;
             }
 
-            for(int i = 0; i < fragment_count; i++)
+            var mtu_special = Encoding.ASCII.GetBytes("MTU ");
+
+            for (int mtu = start_mtu; mtu < end_mtu; mtu += interval)
             {
-                _Send(fragments[i]);
+                Log.Trace("  probing MTU {0}...", mtu);
+
+                MemoryStream ms = new MemoryStream();
+                BinaryWriter bw = new BinaryWriter(ms);
+
+                bw.Write(mtu_special);
+                bw.Write(mtu);
+                bw.Write(new byte[mtu - ms.Position]);
+
+                var packet = ms.ToArray();
+
+                for (int i = 0; i < packet_count; i++)
+                {
+                    try
+                    {
+                        Socket.Send(packet, packet.Length, EndPoint);
+                    }
+                    catch
+                    {
+                    }
+                }
             }
 
-            _fragment_index++;
+            LastMTUProbe = DateTime.Now;
+            while ((DateTime.Now - LastMTUProbe).TotalMilliseconds < 500 && GoodMTUs.Count < 1000) // prevent attack
+                Thread.Sleep(100);
+
+            var good_mtu = 0;
+
+            if (ForceMTU != 0)
+                good_mtu = ForceMTU;
+            else
+                good_mtu = GoodMTUs.Max();
+
+            Log.Info("Detected downlink MTU: {0}", good_mtu);
+
+            Message message = new Message(MessageType.Control, 0x53);
+            message.Store["mtu"] = BitConverter.GetBytes(good_mtu);
+
+            Send(message.Serialize());
+
+            var peer_mtu_msg = ReceiveMessage(5000);
+
+            if (!peer_mtu_msg.CheckType(MessageType.Control, 0x53))
+            {
+                Log.Warn("Received message of type {0}/0x{1:X} while expecting MTU notification. pMTUd has failed.", peer_mtu_msg.Type, peer_mtu_msg.Subtype);
+                return;
+            }
+
+            PeerMTU = BitConverter.ToInt32(peer_mtu_msg.Store["mtu"], 0);
+
+            if (ForceMTU != 0)
+                PeerMTU = ForceMTU;
+
+            Log.Info("Detected uplink MTU: {0}", PeerMTU);
+
+            Socket.DontFragment = false;
+            NegotiatingMTU = false;
+        }
+
+        internal void Push(byte[] data)
+        {
+            if (data.Length == 0)
+                return;
+
+            ReceiveQueue.Add(data);
         }
 
         internal Message ReceiveMessage(int timeout)
@@ -294,54 +290,45 @@ namespace Bifrost.Udp
             return response;
         }
 
-        internal void Push(byte[] data)
+        internal void SendFragmented(byte[] data)
         {
-            if (data.Length == 0)
-                return;
+            if (data.Length > MAX_FRAGMENT_LEN)
+                throw new Exception("Datagram bigger than MAX_FRAGMENT_LEN");
 
-            ReceiveQueue.Add(data);
-        }
+            int fragment_count = (int)Math.Ceiling((float)data.Length / (float)PeerMTU);
 
-        public byte[] Receive()
-        {
-            var ret = ReceiveQueue.Take();
-            return ret;
-        }
+            byte[][] fragments = new byte[fragment_count][];
 
-        public byte[] Receive(CancellationToken token)
-        {
-            var ret = ReceiveQueue.Take(token);
-            return ret;
-        }
+            for (int i = 0, index = 0; i < fragment_count; i++)
+            {
+                int left = data.Length - index;
 
-        public byte[] Receive(int timeout)
-        {
-            var token = new CancellationTokenSource(timeout);
-            return Receive(token.Token);
+                var fragment = new byte[Math.Min(PeerMTU, left + 13)];
+                fragment[0] = (byte)'f';
+                //fragment[1] = _fragment_index;
+
+                Array.Copy(BitConverter.GetBytes(_fragment_index), 0, fragment, 1, 8);
+
+                Array.Copy(BitConverter.GetBytes((ushort)data.Length), 0, fragment, 9, 2);
+                Array.Copy(BitConverter.GetBytes((ushort)index), 0, fragment, 11, 2);
+
+                Array.Copy(data, index, fragment, 13, fragment.Length - 13);
+                index += fragment.Length - 13;
+
+                fragments[i] = fragment;
+            }
+
+            for (int i = 0; i < fragment_count; i++)
+            {
+                _Send(fragments[i]);
+            }
+
+            _fragment_index++;
         }
 
         private void _Send(byte[] data)
         {
             Socket.Send(data, data.Length, EndPoint);
-        }
-
-        public void Send(byte[] data)
-        {
-            if (L7FragmentationCapable && !NegotiatingMTU && PeerMTU > 0)
-            {
-                if (data.Length > PeerMTU)
-                {
-                    SendFragmented(data);
-                }
-                else
-                {
-                    var _tmp_buf = new byte[data.Length + 1];
-                    Array.Copy(data, 0, _tmp_buf, 1, data.Length);
-                    _Send(_tmp_buf);
-                }
-            }
-            else
-                _Send(data);
         }
     }
 }

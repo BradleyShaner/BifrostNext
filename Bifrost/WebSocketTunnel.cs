@@ -1,58 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using Bifrost.WebSockets;
-using System.Net.Sockets;
-using System.Threading;
+﻿using Bifrost.WebSockets;
+using System;
 using System.Net;
+using System.Net.Sockets;
 
 namespace Bifrost
 {
     public class WebSocketTunnel : ITunnel
     {
         private Logger Log = LogManager.GetCurrentClassLogger();
-        public WebSocketConnection Connection { get; set; }
-
-        #region Statistics
-        public ulong PacketsDropped { get => 0; }
-        public ulong PacketsReceived { get => 0; }
-        public long RawBytesSent { get; set; }
-        public long DataBytesSent { get; set; }
-        public long ProtocolBytesSent
-        {
-            get
-            {
-                return RawBytesSent - DataBytesSent;
-            }
-        }
-        public double OverheadSent
-        {
-            get
-            {
-                return (double)ProtocolBytesSent / (double)RawBytesSent;
-            }
-        }
-
-        public long RawBytesReceived { get; set; }
-        public long DataBytesReceived { get; set; }
-        public long ProtocolBytesReceived
-        {
-            get
-            {
-                return RawBytesReceived - DataBytesReceived;
-            }
-        }
-        public double OverheadReceived
-        {
-            get
-            {
-                return (double)ProtocolBytesReceived / (double)RawBytesReceived;
-            }
-        }
-        #endregion
 
         public bool Closed
         {
@@ -62,9 +17,55 @@ namespace Bifrost
             }
             set
             {
-
             }
         }
+
+        public WebSocketConnection Connection { get; set; }
+
+        #region Statistics
+
+        public long DataBytesReceived { get; set; }
+        public long DataBytesSent { get; set; }
+
+        public double OverheadReceived
+        {
+            get
+            {
+                return (double)ProtocolBytesReceived / (double)RawBytesReceived;
+            }
+        }
+
+        public double OverheadSent
+        {
+            get
+            {
+                return (double)ProtocolBytesSent / (double)RawBytesSent;
+            }
+        }
+
+        public ulong PacketsDropped { get => 0; }
+        public ulong PacketsReceived { get => 0; }
+
+        public long ProtocolBytesReceived
+        {
+            get
+            {
+                return RawBytesReceived - DataBytesReceived;
+            }
+        }
+
+        public long ProtocolBytesSent
+        {
+            get
+            {
+                return RawBytesSent - DataBytesSent;
+            }
+        }
+
+        public long RawBytesReceived { get; set; }
+        public long RawBytesSent { get; set; }
+
+        #endregion Statistics
 
         public WebSocketTunnel(TcpClient client, string host, string origin, bool server)
         {
@@ -86,10 +87,9 @@ namespace Bifrost
             Connection.StartThreads();
         }
 
-        public void Send(byte[] data)
+        public void Close()
         {
-            Connection.SendBinary(data);
-            RawBytesSent += data.Length;
+            Connection.Close();
         }
 
         public byte[] Receive()
@@ -108,12 +108,13 @@ namespace Bifrost
                 Close();
 
                 return null;
-            } 
+            }
         }
 
-        public void Close()
+        public void Send(byte[] data)
         {
-            Connection.Close();
+            Connection.SendBinary(data);
+            RawBytesSent += data.Length;
         }
 
         public override string ToString()

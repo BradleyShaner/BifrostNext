@@ -1,5 +1,4 @@
-﻿
-using Org.BouncyCastle.Asn1.Nist;
+﻿using Org.BouncyCastle.Asn1.Nist;
 using Org.BouncyCastle.Asn1.X9;
 using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Agreement;
@@ -7,37 +6,19 @@ using Org.BouncyCastle.Crypto.Generators;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.OpenSsl;
 using Org.BouncyCastle.Security;
-using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Bifrost.KeyExchanges
 {
     public class EcdhKeyExchange : IKeyExchange
     {
-        public Logger Log = LogManager.GetCurrentClassLogger();
-
         public const ushort Identifier = 0;
-
-        public ushort KeyExchangeIdentifier { get { return Identifier; } }
-        public string HumanName { get { return "ECDH"; } }
-
-        public ECDHBasicAgreement KeyAgreement = new ECDHBasicAgreement();
         public AsymmetricCipherKeyPair ECDHEPair;
-
-        public byte[] GetPublicKey()
-        {
-            StringWriter sw = new StringWriter();
-            PemWriter pem = new PemWriter(sw);
-
-            pem.WriteObject(ECDHEPair.Public);
-            pem.Writer.Flush();
-
-            return Encoding.ASCII.GetBytes(sw.ToString());
-        }
+        public ECDHBasicAgreement KeyAgreement = new ECDHBasicAgreement();
+        public Logger Log = LogManager.GetCurrentClassLogger();
+        public string HumanName { get { return "ECDH"; } }
+        public ushort KeyExchangeIdentifier { get { return Identifier; } }
 
         public byte[] FinalizeKeyExchange(byte[] peer_pk)
         {
@@ -50,6 +31,17 @@ namespace Bifrost.KeyExchanges
             agreement.Init(self_priv);
 
             return agreement.CalculateAgreement(peer_ecdh_pk).ToByteArray();
+        }
+
+        public byte[] GetPublicKey()
+        {
+            StringWriter sw = new StringWriter();
+            PemWriter pem = new PemWriter(sw);
+
+            pem.WriteObject(ECDHEPair.Public);
+            pem.Writer.Flush();
+
+            return Encoding.ASCII.GetBytes(sw.ToString());
         }
 
         public void Initialize()

@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Bifrost
+﻿namespace Bifrost
 {
-    enum Capability
+    internal enum Capability
     {
         CapabilityNegotiation = 0x00,
         Heartbeat = 0x01,

@@ -1,38 +1,30 @@
-﻿
-using System.Net;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Net;
 
 namespace Bifrost.Udp
 {
     public class UdpTunnel : ITunnel
     {
+        public static int SourcePortEnd = 20200;
+        public static int SourcePortStart = 10100;
+        private static int SourcePort = 10100;
+        private Logger Log = LogManager.GetCurrentClassLogger();
         public bool Closed { get; set; }
         internal UdpSession Session { get; set; }
         private IPEndPoint EndPoint { get; set; }
 
-        private Logger Log = LogManager.GetCurrentClassLogger();
-
-        public static int SourcePortStart = 10100;
-        public static int SourcePortEnd = 20200;
-
-        private static int SourcePort = 10100;
-
         #region Statistics
-        public ulong PacketsDropped { get => Session.DroppedFragments; }
-        public ulong PacketsReceived { get => Session.ReceivedFragments; }
-        public long RawBytesSent { get; set; }
+
+        public long DataBytesReceived { get; set; }
         public long DataBytesSent { get; set; }
-        public long ProtocolBytesSent
+
+        public double OverheadReceived
         {
             get
             {
-                return RawBytesSent - DataBytesSent;
+                return (double)ProtocolBytesReceived / (double)RawBytesReceived;
             }
         }
+
         public double OverheadSent
         {
             get
@@ -41,8 +33,9 @@ namespace Bifrost.Udp
             }
         }
 
-        public long RawBytesReceived { get; set; }
-        public long DataBytesReceived { get; set; }
+        public ulong PacketsDropped { get => Session.DroppedFragments; }
+        public ulong PacketsReceived { get => Session.ReceivedFragments; }
+
         public long ProtocolBytesReceived
         {
             get
@@ -50,19 +43,19 @@ namespace Bifrost.Udp
                 return RawBytesReceived - DataBytesReceived;
             }
         }
-        public double OverheadReceived
+
+        public long ProtocolBytesSent
         {
             get
             {
-                return (double)ProtocolBytesReceived / (double)RawBytesReceived;
+                return RawBytesSent - DataBytesSent;
             }
         }
-        #endregion
 
-        internal UdpTunnel(UdpSession session)
-        {
-            Session = session;
-        }
+        public long RawBytesReceived { get; set; }
+        public long RawBytesSent { get; set; }
+
+        #endregion Statistics
 
         public UdpTunnel(IPAddress addr, int port, int mtu = 0)
         {
@@ -86,7 +79,11 @@ namespace Bifrost.Udp
         public UdpTunnel(IPEndPoint ep, int mtu = 0) :
             this(ep.Address, ep.Port, mtu)
         {
+        }
 
+        internal UdpTunnel(UdpSession session)
+        {
+            Session = session;
         }
 
         public void Close()
@@ -100,18 +97,18 @@ namespace Bifrost.Udp
             Session.Listener.Close(Session);
         }
 
-        public void Send(byte[] data)
-        {
-            RawBytesSent += data.Length;
-            Session.Send(data);
-        }
-
         public byte[] Receive()
         {
             var ret = Session.Receive();
             RawBytesReceived += ret.Length;
-            
+
             return ret;
+        }
+
+        public void Send(byte[] data)
+        {
+            RawBytesSent += data.Length;
+            Session.Send(data);
         }
 
         public override string ToString()

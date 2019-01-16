@@ -1,18 +1,15 @@
-﻿
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Bifrost.WebSockets
 {
     public class ClientConnection : WebSocketConnection
     {
-        static Logger Log = LogManager.GetCurrentClassLogger();
+        private static Logger Log = LogManager.GetCurrentClassLogger();
 
         private RNGCryptoServiceProvider RNG = new RNGCryptoServiceProvider();
 
@@ -75,7 +72,7 @@ namespace Bifrost.WebSockets
 
             Log.Debug("Expected WebSocket hash is {0}", expected_hash);
 
-            if(expected_hash != hash)
+            if (expected_hash != hash)
             {
                 Log.Error("Hash mismatch!");
                 return;

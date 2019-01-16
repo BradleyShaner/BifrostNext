@@ -1,31 +1,57 @@
-﻿using System;
-using System.Text;
-using System.Linq;
-using System.Xml.Linq;
-using System.Security.Cryptography;
-using System.IO;
-
-using Org.BouncyCastle.Crypto;
+﻿using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Parameters;
-using Org.BouncyCastle.Security;
 using Org.BouncyCastle.OpenSsl;
+using Org.BouncyCastle.Security;
+using System;
+using System.IO;
+using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
+using System.Xml.Linq;
 
 namespace Bifrost
 {
     public class RsaHelpers
     {
         /// <summary>
-        /// Serializes an object using PEM and returns the serialized data.
+        /// Returns an RSACryptoServiceProvider from a string.
         /// </summary>
-        /// <param name="obj">The object to be serialized.</param>
-        /// <returns>The serialized data.</returns>
-        public static string PemSerialize(object obj)
+        /// <param name="text">The string to deserialize the RSACryptoServiceProvider from.</param>
+        /// <returns>The deserialized RSACryptoServiceProvider.</returns>
+        [Obsolete("The System.Security.Cryptography API is no longer used.")]
+        public static RSACryptoServiceProvider LoadFromString(string text)
         {
-            StringWriter sw = new StringWriter();
-            PemWriter pem = new PemWriter(sw);
+            XDocument doc = XDocument.Parse(text);
 
-            pem.WriteObject(obj);
-            return sw.ToString().Replace("\r", "");
+            var data = doc.Descendants("RSAKeyValue").First();
+
+            RSAParameters parameters = new RSAParameters();
+
+            parameters.Modulus = Convert.FromBase64String(data.Element("Modulus").Value);
+            parameters.Exponent = Convert.FromBase64String(data.Element("Exponent").Value);
+
+            if (data.Elements("P").Any())
+                parameters.P = Convert.FromBase64String(data.Element("P").Value);
+
+            if (data.Elements("D").Any())
+                parameters.D = Convert.FromBase64String(data.Element("D").Value);
+
+            if (data.Elements("DP").Any())
+                parameters.DP = Convert.FromBase64String(data.Element("DP").Value);
+
+            if (data.Elements("DQ").Any())
+                parameters.DQ = Convert.FromBase64String(data.Element("DQ").Value);
+
+            if (data.Elements("Q").Any())
+                parameters.Q = Convert.FromBase64String(data.Element("Q").Value);
+
+            if (data.Elements("InverseQ").Any())
+                parameters.InverseQ = Convert.FromBase64String(data.Element("InverseQ").Value);
+
+            RSACryptoServiceProvider rsa = new RSACryptoServiceProvider();
+            rsa.ImportParameters(parameters);
+
+            return rsa;
         }
 
         /// <summary>
@@ -39,6 +65,20 @@ namespace Bifrost
             PemReader pem = new PemReader(sr);
 
             return pem.ReadObject();
+        }
+
+        /// <summary>
+        /// Serializes an object using PEM and returns the serialized data.
+        /// </summary>
+        /// <param name="obj">The object to be serialized.</param>
+        /// <returns>The serialized data.</returns>
+        public static string PemSerialize(object obj)
+        {
+            StringWriter sw = new StringWriter();
+            PemWriter pem = new PemWriter(sw);
+
+            pem.WriteObject(obj);
+            return sw.ToString().Replace("\r", "");
         }
 
         /// <summary>
@@ -96,47 +136,5 @@ namespace Bifrost
 
             return sig.VerifySignature(signature);
         }
-
-        /// <summary>
-        /// Returns an RSACryptoServiceProvider from a string.
-        /// </summary>
-        /// <param name="text">The string to deserialize the RSACryptoServiceProvider from.</param>
-        /// <returns>The deserialized RSACryptoServiceProvider.</returns>
-        [Obsolete("The System.Security.Cryptography API is no longer used.")]
-        public static RSACryptoServiceProvider LoadFromString(string text)
-        {
-            XDocument doc = XDocument.Parse(text);
-
-            var data = doc.Descendants("RSAKeyValue").First();
-
-            RSAParameters parameters = new RSAParameters();
-
-            parameters.Modulus = Convert.FromBase64String(data.Element("Modulus").Value);
-            parameters.Exponent = Convert.FromBase64String(data.Element("Exponent").Value);
-
-            if (data.Elements("P").Any())
-                parameters.P = Convert.FromBase64String(data.Element("P").Value);
-            
-            if (data.Elements("D").Any())
-                parameters.D = Convert.FromBase64String(data.Element("D").Value);
-            
-            if (data.Elements("DP").Any())
-                parameters.DP = Convert.FromBase64String(data.Element("DP").Value);
-            
-            if (data.Elements("DQ").Any())
-                parameters.DQ = Convert.FromBase64String(data.Element("DQ").Value);
-
-            if (data.Elements("Q").Any())
-                parameters.Q = Convert.FromBase64String(data.Element("Q").Value);
-
-            if (data.Elements("InverseQ").Any())
-                parameters.InverseQ = Convert.FromBase64String(data.Element("InverseQ").Value);
-
-            RSACryptoServiceProvider rsa = new RSACryptoServiceProvider();
-            rsa.ImportParameters(parameters);
-
-            return rsa;
-        }
     }
 }
-
