@@ -48,7 +48,7 @@ namespace CertManager
             }
             AsymmetricCipherKeyPair Pair = null;
 
-            if (action == "sign-key")
+            if (action == "sign-key" || action == "generate-key")
             {
                 if (!File.Exists(ca_path))
                 {
