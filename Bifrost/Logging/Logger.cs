@@ -75,6 +75,8 @@ namespace Bifrost
 
         public void Error(string message, string replace) => Log.Error($"{className} " + string.Format(message, replace));
 
+        public void Error(Exception ex, string message) => Log.Error(ex, $"{className} " + message);
+
         public void Error(string message) => Log.Error($"{className} " + message);
 
         public void Info(string message, TimeSpan difference) => Log.Information($"{className} " + string.Format(message, difference.ToString()));
@@ -94,7 +96,7 @@ namespace Bifrost
         public void Info(string message, MessageType? type, byte? subtype) => Log.Information($"{className} " + string.Format(message, type.ToString(), subtype));
 
         public void Info(string message, string rep1, string rep2, string rep3) => Log.Information($"{className} " + string.Format(message, rep1, rep2, rep3));
-
+        
         public void Trace(string message, string str) => Log.Verbose($"{className} " + string.Format(message, str));
 
         public void Trace(string message, int replace) => Log.Verbose($"{className} " + string.Format(message, replace));
