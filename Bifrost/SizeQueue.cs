@@ -19,7 +19,9 @@ namespace Bifrost
             {
                 while (queue.Count == 0)
                 {
-                    Monitor.Wait(queue);
+                    Monitor.Wait(queue, 1000);
+                    if (queue.Count == 0)
+                        return default(T);
                 }
                 T item = queue.Dequeue();
                 if (queue.Count == maxSize - 1)
