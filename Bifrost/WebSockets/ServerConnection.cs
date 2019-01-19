@@ -71,7 +71,7 @@ namespace Bifrost.WebSockets
                 "Connection: Upgrade",
                 "Sec-WebSocket-Accept: " + hash);
 
-            Log.Info("Wrote WebSocket response");
+            Log.Debug("Wrote WebSocket response");
         }
     }
 }

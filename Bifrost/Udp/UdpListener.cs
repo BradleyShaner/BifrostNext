@@ -151,13 +151,13 @@ namespace Bifrost.Udp
                         }
                         catch (Exception ex)
                         {
-                            Log.Info("Ignored improper connection attempt with message {0}/0x{1:X2}", syn_msg?.Type, syn_msg?.Subtype);
+                            Log.Debug("Ignored improper connection attempt with message {0}/0x{1:X2}", syn_msg?.Type, syn_msg?.Subtype);
                             continue;
                         }
 
                         if (syn_msg == null || syn_msg.Type != MessageType.Control || syn_msg.Subtype != UdpSession.SYN)
                         {
-                            Log.Info("Ignored improper connection attempt with message {0}/0x{1:X2}", syn_msg?.Type, syn_msg?.Subtype);
+                            Log.Debug("Ignored improper connection attempt with message {0}/0x{1:X2}", syn_msg?.Type, syn_msg?.Subtype);
                             continue;
                         }
 
@@ -174,7 +174,7 @@ namespace Bifrost.Udp
 
                             if (ack_msg == null || ack_msg.Type != MessageType.Control || ack_msg.Subtype != UdpSession.ACK)
                             {
-                                Log.Info("Ignored improper connection attempt with message {0}/0x{1:X2}", ack_msg?.Type, ack_msg?.Subtype);
+                                Log.Debug("Ignored improper connection attempt with message {0}/0x{1:X2}", ack_msg?.Type, ack_msg?.Subtype);
                                 Sessions.Remove(tuple);
                                 return;
                             }
@@ -184,11 +184,11 @@ namespace Bifrost.Udp
                                 session.L7FragmentationCapable = ack_msg.Store["capabilities"].Contains((byte)UdpCapabilities.L7Fragmentation);
                             }
 
-                            Log.Info("Accepted UDP connection on {0}{1}", receive_ep, QueueConnections ? ", queueing session" : "");
+                            Log.Debug("Accepted UDP connection on {0}{1}", receive_ep, QueueConnections ? ", queueing session" : "");
 
                             if (session.L7FragmentationCapable)
                             {
-                                Log.Info("Negotiating MTU...");
+                                Log.Debug("Negotiating MTU...");
                                 session.NegotiateMTU();
                             }
 

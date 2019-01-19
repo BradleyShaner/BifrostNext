@@ -52,7 +52,7 @@ namespace Bifrost
 
                 if (read == 0)
                 {
-                    Log.Error("Read 0 bytes");
+                    //Log.Error("Read 0 bytes");
                     break;
                 }
                 index += read;

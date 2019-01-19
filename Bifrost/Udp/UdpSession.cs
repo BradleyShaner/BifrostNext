@@ -227,7 +227,7 @@ namespace Bifrost.Udp
             else
                 good_mtu = GoodMTUs.Max();
 
-            Log.Info("Detected downlink MTU: {0}", good_mtu);
+            Log.Debug("Detected downlink MTU: {0}", good_mtu);
 
             Message message = new Message(MessageType.Control, 0x53);
             message.Store["mtu"] = BitConverter.GetBytes(good_mtu);
@@ -247,7 +247,7 @@ namespace Bifrost.Udp
             if (ForceMTU != 0)
                 PeerMTU = ForceMTU;
 
-            Log.Info("Detected uplink MTU: {0}", PeerMTU);
+            Log.Debug("Detected uplink MTU: {0}", PeerMTU);
 
             Socket.DontFragment = false;
             NegotiatingMTU = false;

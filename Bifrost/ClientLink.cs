@@ -165,7 +165,7 @@ namespace Bifrost
                 return result;
             }
 
-            Log.Info("Clock drift between peers is {0}.", difference);
+            Log.Debug("Clock drift between peers is {0}.", difference);
 
             if (!RsaHelpers.VerifyData(rsa_public_key, rsa_signature, CertificateAuthority))
             {
@@ -197,8 +197,8 @@ namespace Bifrost
                 TimeDrift = difference.TotalSeconds
             };
 
-            Log.Info(result_final.Message);
-            Log.Info("Cipher: {0}, key exchange: {1}, MAC: {2}", Suite.Cipher.HumanName, Suite.KeyExchange.HumanName, Suite.MAC.HumanName);
+            Log.Debug(result_final.Message);
+            Log.Debug("Cipher: {0}, key exchange: {1}, MAC: {2}", Suite.Cipher.HumanName, Suite.KeyExchange.HumanName, Suite.MAC.HumanName);
             return result_final;
         }
     }

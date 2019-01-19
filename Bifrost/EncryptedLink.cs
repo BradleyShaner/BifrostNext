@@ -52,7 +52,7 @@ namespace Bifrost
 
         private Logger Log = LogManager.GetCurrentClassLogger();
         private Capability RemoteCapabilities;
-
+        
         public event DataReceived OnDataReceived;
 
         public event LinkClosed OnLinkClosed;
@@ -73,7 +73,7 @@ namespace Bifrost
 
         public void CheckAlive()
         {
-            Log.Info("Heartbeat capable peer.");
+            Log.Debug("Heartbeat capable peer.");
 
             while ((DateTime.Now - _last_received).TotalSeconds < 10)
                 Thread.Sleep(500);
@@ -278,7 +278,7 @@ namespace Bifrost
         /// </summary>
         private void ReceiveLoop()
         {
-            MD5CryptoServiceProvider md5 = new MD5CryptoServiceProvider();
+            //MD5CryptoServiceProvider md5 = new MD5CryptoServiceProvider();
             while (!Closed)
             {
                 if (Tunnel.Closed)
@@ -301,6 +301,7 @@ namespace Bifrost
                     Tunnel.DataBytesReceived += msg.Store["data"].Length;
                     OnDataReceived?.Invoke(this, msg.Store["data"]);
                 }
+
 
                 if (msg.Type == MessageType.Heartbeat && !HeartbeatCapable)
                 {

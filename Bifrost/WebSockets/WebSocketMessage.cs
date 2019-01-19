@@ -140,25 +140,25 @@ namespace Bifrost.WebSockets
             }
 
 #if EXTENDED_WEBSOCKET_DEBUG
-            Log.Info("Incoming packet:");
-            Log.Info("\tfin and rsv: {0}", Convert.ToString(fin_rsv, 2));
-            Log.Info("\topcode: {0}", opcode);
-            Log.Info("\tmask: {0}", mask ? 1 : 0);
-            Log.Info("\tlength: {0}", length);*/
+            Log.Debug("Incoming packet:");
+            Log.Debug("\tfin and rsv: {0}", Convert.ToString(fin_rsv, 2));
+            Log.Debug("\topcode: {0}", opcode);
+            Log.Debug("\tmask: {0}", mask ? 1 : 0);
+            Log.Debug("\tlength: {0}", length);*/
 #endif
 
             if (length == 126)
             {
                 length = BitConverter.ToUInt16(stream.ReadSafe(2, true), 0);
 #if EXTENDED_WEBSOCKET_DEBUG
-                Log.Info("Extended packet length(0-2^16): {0}", length);
+                Log.Debug("Extended packet length(0-2^16): {0}", length);
 #endif
             }
             else if (length == 127)
             {
                 length = BitConverter.ToUInt64(stream.ReadSafe(8, true), 0);
 #if EXTENDED_WEBSOCKET_DEBUG
-                Log.Info("Extended packet length(0-2^64): {0}", length);
+                Log.Debug("Extended packet length(0-2^64): {0}", length);
 #endif
             }
 
@@ -168,7 +168,7 @@ namespace Bifrost.WebSockets
             {
                 mask_key = stream.ReadSafe(4);
 #if EXTENDED_WEBSOCKET_DEBUG
-                Log.Info("Mask key is {0}", BitConverter.ToString(mask_key).Replace("-", "").ToLower());
+                Log.Debug("Mask key is {0}", BitConverter.ToString(mask_key).Replace("-", "").ToLower());
 #endif
             }
 

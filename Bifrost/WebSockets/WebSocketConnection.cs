@@ -168,17 +168,17 @@ namespace Bifrost.WebSockets
 
                                 case Opcode.Ping:
                                     Send(WebSocketMessage.Create(message.Payload, Opcode.Pong, MaskOutgoing));
-                                    Log.Info("Received ping");
+                                    Log.Debug("Received ping");
                                     break;
 
                                 case Opcode.Pong:
-                                    Log.Info("Received pong");
+                                    Log.Debug("Received pong");
                                     break;
 
                                 case Opcode.Close:
                                     Send(WebSocketMessage.Create(new byte[0], Opcode.Close, MaskOutgoing));
                                     Close();
-                                    Log.Info("Received WebSocket close, disconnected");
+                                    Log.Debug("Received WebSocket close, disconnected");
                                     return;
                             }
                         }
