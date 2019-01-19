@@ -118,11 +118,17 @@ namespace Bifrost
         /// <param name="data">The data to be sent.</param>
         public void Send(byte[] data)
         {
-            NetworkStream.WriteUInt((uint)data.Length);
-            NetworkStream.Write(data, 0, data.Length);
+            try
+            {
+                NetworkStream.WriteUInt((uint)data.Length);
+                NetworkStream.Write(data, 0, data.Length);
 
-            RawBytesSent += data.Length + 4;
-            DataBytesSent += data.Length;
+                RawBytesSent += data.Length + 4;
+                DataBytesSent += data.Length;
+            } catch (Exception ex)
+            {
+                Log.Error(ex);
+            }
         }
     }
 }
