@@ -76,11 +76,11 @@ namespace Bifrost
         /// </summary>
         public byte[] Serialize()
         {
-            MemoryStream ms = new MemoryStream();
-
-            Serialize(ms);
-
-            return ms.ToArray();
+            using (MemoryStream ms = new MemoryStream())
+            {
+                Serialize(ms);
+                return ms.ToArray();
+            }
         }
 
         /// <summary>

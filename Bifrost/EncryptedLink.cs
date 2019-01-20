@@ -13,8 +13,8 @@ using System.Threading;
 
 namespace Bifrost
 {
-    public delegate void DataReceived(EncryptedLink link, byte[] data);
-
+    public delegate void DataReceived(EncryptedLink link, Dictionary<string, byte[]> Store);
+    
     public delegate void LinkClosed(EncryptedLink link);
 
     /// <summary>
