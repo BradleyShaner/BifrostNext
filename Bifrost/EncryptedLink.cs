@@ -273,6 +273,7 @@ namespace Bifrost
             Tunnel.Send(final_message);
         }
 
+
         /// <summary>
         /// A loop that receives and parses link messages.
         /// </summary>
@@ -297,10 +298,7 @@ namespace Bifrost
                 }
 
                 if (msg.Type == MessageType.Data)
-                {
-                    Tunnel.DataBytesReceived += msg.Store["data"].Length;
-                    OnDataReceived?.Invoke(this, msg.Store["data"]);
-                }
+                    OnDataReceived?.Invoke(this, msg.Store);
 
 
                 if (msg.Type == MessageType.Heartbeat && !HeartbeatCapable)
