@@ -24,6 +24,8 @@ namespace Bifrost
                     .MinimumLevel.ControlledBy(loggingLevel)
                     .WriteTo.Sink(sink)
                     .CreateLogger();
+
+                serilogInitialized = true;
             }
             Logger logger = new Logger($"{NameOfCallingClass()}");
             return logger;
