@@ -196,9 +196,13 @@ namespace Bifrost
             {
                 TimeDrift = difference.TotalSeconds
             };
-
+            
             Log.Debug(result_final.Message);
             Log.Debug("Cipher: {0}, key exchange: {1}, MAC: {2}", Suite.Cipher.HumanName, Suite.KeyExchange.HumanName, Suite.MAC.HumanName);
+
+            //Give the server a moment to initialize event handlers for the new link..
+            Thread.Sleep(50);
+
             return result_final;
         }
     }
