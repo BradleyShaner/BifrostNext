@@ -14,7 +14,7 @@ using System.Threading;
 namespace Bifrost
 {
     public delegate void DataReceived(EncryptedLink link, Dictionary<string, byte[]> Store);
-    
+
     public delegate void LinkClosed(EncryptedLink link);
 
     /// <summary>
@@ -38,6 +38,8 @@ namespace Bifrost
         public bool HeartbeatCapable = false;
         public TimeSpan MaximumTimeMismatch = new TimeSpan(0, 5, 0);
         public byte[] PeerSignature;
+        public RsaKeyParameters RemoteCertificateAuthority;
+        public string remoteCertificateHash;
         public RNGCryptoServiceProvider RNG = new RNGCryptoServiceProvider();
         public SizeQueue<Message> SendQueue = new SizeQueue<Message>(1500);
         public SHA256CryptoServiceProvider SHA = new SHA256CryptoServiceProvider();
@@ -52,14 +54,17 @@ namespace Bifrost
 
         private Logger Log = LogManager.GetCurrentClassLogger();
         private Capability RemoteCapabilities;
-        
+
         public event DataReceived OnDataReceived;
 
         public event LinkClosed OnLinkClosed;
 
         public byte[] AttestationToken { get; set; }
         public bool Closed { get; set; }
+        public bool NoAuthentication { get; set; }
+        public bool RememberRemoteCertAuthority { get; set; }
         public CipherSuite Suite { get; set; }
+        public bool TrustedCertificateUsed { get; set; }
         public ITunnel Tunnel { get; set; }
 
         public EncryptedLink()
@@ -237,6 +242,14 @@ namespace Bifrost
             }
         }
 
+        public void SetCertificateAuthorityTrust(bool trusted)
+        {
+            if (String.IsNullOrWhiteSpace(remoteCertificateHash))
+                return;
+
+            CertManager.SetCertificateTrusted(remoteCertificateHash, trusted);
+        }
+
         /// <summary>
         /// Starts the receive/send thread pair.
         /// </summary>
@@ -263,7 +276,11 @@ namespace Bifrost
 
             if (msg.Type == MessageType.Data)
             {
-                Tunnel.DataBytesSent += msg.Store["data"].Length;
+                if (msg.Store.ContainsKey("data"))
+                    Tunnel.DataBytesSent += msg.Store["data"].Length;
+
+                if (msg.Store.ContainsKey("message"))
+                    Tunnel.DataBytesSent += msg.Store["message"].Length;
             }
 
             byte[] raw_message = msg.Serialize();
@@ -272,7 +289,6 @@ namespace Bifrost
             _last_sent = DateTime.Now;
             Tunnel.Send(final_message);
         }
-
 
         /// <summary>
         /// A loop that receives and parses link messages.
@@ -299,7 +315,6 @@ namespace Bifrost
 
                 if (msg.Type == MessageType.Data)
                     OnDataReceived?.Invoke(this, msg.Store);
-
 
                 if (msg.Type == MessageType.Heartbeat && !HeartbeatCapable)
                 {
