@@ -1,24 +1,20 @@
-# Bifrost [![Build status](https://ci.appveyor.com/api/projects/status/7fr863kn1dbihtmg/branch/master?svg=true)](https://ci.appveyor.com/project/hexafluoride/bifrost/branch/master)
-Lightweight experimental cryptoprotocol :lock: :key:
+# BifrostLSF
+Lightweight experimental cryptoprotocol, forked by LostSoulFly :lock: :key:
 
 ## Get more out of Bifrost!
-This is my Bifrost fork for use with [BifrostExtended](https://github.com/LostSoulfly/BifrostExtended) which adds many features and wraps it all into a simple package to make client/server secure projects. However, you are free to use this fork without BifrostExtended as well.
+This is my [Bifrost](https://github.com/hexafluoride/Bifrost) fork for use with [BifrostExtended](https://github.com/LostSoulfly/BifrostExtended) which adds many features and wraps it all into a simple package to make client/server secure projects. However, you are free to use this fork without BifrostExtended as well.
 
-## Disclaimer
+## Original Disclaimer
 I'm just an amateur who's interested in cryptography and networking. This protocol or its implementation may be heavily flawed, and I promise absolutely no expectation of security. If you're designing a security critical application, please consider using a mature and well-documented cryptoprotocol such as TLS. Thank you.
 
 ## What is Bifrost?
 Bifrost is a cryptoprotocol, designed to be reliable, secure, lightweight and easy to understand. The whole library is around 1k lines of fully documented C#. Bifrost was designed in response to TLS, which has a very long and verbose specification document. In contrast, Bifrost is very easy to understand and doesn't require much effort to set up.
 
 ## Cryptographic primitives
-Bifrost mostly depends on the excellent [BouncyCastle](http://bouncycastle.org/) library to do crypto. Since version 0.3, Bifrost has been able to do cipher selection, click [here](https://github.com/hexafluoride/Bifrost/wiki/Cipher-suites) to view a list of available cipher suites.
+BifrostLSF mostly depends on the excellent [BouncyCastle](http://bouncycastle.org/) library to do crypto. Since version 0.3, Bifrost has been able to do cipher selection, click [here](https://github.com/hexafluoride/Bifrost/wiki/Cipher-suites) to view a list of available cipher suites.
 
 ## Public key infrastructure
-Since Bifrost is designed to be simple, it has its own PKI designed around PEM keypairs and raw signature files. You can use [CertManager](https://github.com/hexafluoride/Bifrost/tree/master/CertManager) to create CAs or keypairs.
-
-## Message format
-Read more about Bifrost's message format in the [wiki](https://github.com/hexafluoride/Bifrost/wiki/Message-format).
-
+Since Bifrost is designed to be simple, it has its own PKI designed around PEM keypairs and raw signature files. You can use [CertManager](https://github.com/LostSoulFly/BifrostLSF/tree/master/CertManager) to create CAs or keypair files, or rely on the built-in [CertManager](https://github.com/LostSoulfly/BifrostLSF/blob/master/Bifrost/CertManager.cs).
 ## Simple example
 Server side:
 
