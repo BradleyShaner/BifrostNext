@@ -1,5 +1,4 @@
-﻿using Serilog;
-using Serilog.Core;
+﻿using Serilog.Core;
 using Serilog.Events;
 using Serilog.Formatting;
 using Serilog.Formatting.Display;
@@ -7,7 +6,6 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
-using System.Text;
 using static Bifrost.Delegates;
 
 namespace Bifrost
@@ -19,14 +17,13 @@ namespace Bifrost
 
     public class EventSink : ILogEventSink
     {
+        public HashSet<string> ignoreHashSet = new HashSet<string>();
         private readonly static IFormatProvider _formatProvider = null;
 
         private ITextFormatter _textFormatter = new MessageTemplateTextFormatter("{Timestamp:HH:mm:ss.fff} [{Level}] {Message}{Exception}", _formatProvider);
         private ITextFormatter _textFormatterClass = new MessageTemplateTextFormatter("{Timestamp:HH:mm:ss.fff} [{Level}] <{Class}> {Message}{Exception}", _formatProvider);
 
         public static event LogMessage OnLogEvent;
-
-        public HashSet<string> ignoreHashSet = new HashSet<string>();
 
         public void Emit(LogEvent logEvent)
         {
@@ -39,27 +36,34 @@ namespace Bifrost
                 LogEventPropertyValue property;
                 if (logEvent.Properties.TryGetValue("Class", out property))
                 {
+                    var render = new StringWriter();
+                    _textFormatterClass.Format(logEvent, render);
+                    logMessage = LogManager.logPrefix + render.ToString();
 
                     string ignoreClass = property.ToString();
                     if (ignoreHashSet.Contains(ignoreClass))
+                    {
+                        if (!String.IsNullOrWhiteSpace(LogManager.outputLogFile))
+                            File.AppendAllText(LogManager.outputLogFile, logMessage);
                         return;
-
-                    var render = new StringWriter();
-                    _textFormatterClass.Format(logEvent, render);
-                    logMessage = render.ToString();
+                    }
                 }
             }
             else
             {
                 var renderSpace = new StringWriter();
                 _textFormatter.Format(logEvent, renderSpace);
-                logMessage = renderSpace.ToString();
+                logMessage = LogManager.logPrefix + renderSpace.ToString();
             }
+
+            if (!String.IsNullOrWhiteSpace(LogManager.outputLogFile))
+                File.AppendAllText(LogManager.outputLogFile, logMessage);
+
             //Raise the event on the delegate's thread, should be UI.
             //Necessary otherwise deadlocks ensue and handshake failure due to cross-thread calls..
             RaiseEventOnUIThread(OnLogEvent, logMessage);
         }
-        
+
         private void RaiseEventOnUIThread(Delegate theEvent, string args)
         {
             if (theEvent == null)
