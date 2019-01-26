@@ -107,7 +107,7 @@ namespace Bifrost
             }
             catch (Exception ex)
             {
-                Log.Warn(ex);
+                Log.Trace(ex);
                 Close();
                 return new byte[0];
             }
@@ -129,7 +129,7 @@ namespace Bifrost
             }
             catch (Exception ex)
             {
-                Log.Error(ex);
+                Log.Trace(ex);
                 Close();
             }
         }

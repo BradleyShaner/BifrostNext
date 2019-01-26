@@ -144,6 +144,8 @@ namespace Bifrost
 
         public void Trace(string message) => Log.ForContext("Class", className).Verbose(message);
 
+        public void Trace(Exception ex) => Log.ForContext("Class", className).Verbose(ex.Message);
+
         public void Warn(string message, ushort replace) => Log.ForContext("Class", className).Warning(string.Format(message, replace));
 
         public void Warn(string message, string rep1, string rep2) => Log.ForContext("Class", className).Warning(string.Format(message, rep1, rep2));

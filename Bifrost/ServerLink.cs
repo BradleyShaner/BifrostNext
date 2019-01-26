@@ -46,7 +46,7 @@ namespace Bifrost
                 catch (Exception ex)
                 {
                     result = new HandshakeResult(HandshakeResultType.Other, "Exception occurred.");
-                    Log.Error(ex);
+                    Log.Trace(ex);
                 }
                 done.Set();
             });
