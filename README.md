@@ -1,6 +1,9 @@
 # Bifrost [![Build status](https://ci.appveyor.com/api/projects/status/7fr863kn1dbihtmg/branch/master?svg=true)](https://ci.appveyor.com/project/hexafluoride/bifrost/branch/master)
 Lightweight experimental cryptoprotocol :lock: :key:
 
+## Get more out of Bifrost!
+This is my Bifrost fork for use with [BifrostExtended](https://github.com/LostSoulfly/BifrostExtended) which adds many features and wraps it all into a simple package to make client/server secure projects. However, you are free to use this fork without BifrostExtended as well.
+
 ## Disclaimer
 I'm just an amateur who's interested in cryptography and networking. This protocol or its implementation may be heavily flawed, and I promise absolutely no expectation of security. If you're designing a security critical application, please consider using a mature and well-documented cryptoprotocol such as TLS. Thank you.
 
