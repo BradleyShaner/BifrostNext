@@ -7,10 +7,25 @@ using System.Reflection;
 
 namespace Bifrost
 {
+    //
+    // Summary:
+    //     Specifies the meaning and relative importance of a log event.
+    public enum SerilogLogLevel
+    {
+        Verbose = 0,
+        Debug = 1,
+        Information = 2,
+        Warning = 3,
+        Error = 4,
+        Fatal = 5
+    }
+
     public static class LogManager
     {
         public static LoggingLevelSwitch loggingLevel = new LoggingLevelSwitch(Serilog.Events.LogEventLevel.Information);
+        public static string logPrefix = "";
         public static EventSink LogSink = new EventSink();
+        public static string outputLogFile = "";
         public static bool serilogInitialized;
         public static bool showCallingClass = true;
 
@@ -60,6 +75,12 @@ namespace Bifrost
             }
             return fullName;
         }
+
+        public static void SetMinimumLogLevel(SerilogLogLevel logLevel)
+        {
+            LogManager.loggingLevel = new LoggingLevelSwitch((Serilog.Events.LogEventLevel)logLevel);
+            serilogInitialized = false;
+        }
     }
 
     public class Logger
@@ -78,6 +99,18 @@ namespace Bifrost
         public void Debug(string message, ulong length) => Log.ForContext("Class", className).Debug(string.Format(message, length));
 
         public void Debug(string message) => Log.ForContext("Class", className).Debug(message);
+
+        public void Debug(string message, MessageType? type, byte? subtype) => Log.ForContext("Class", className).Debug(string.Format(message, type.ToString(), subtype));
+
+        public void Debug(MessageType type) => Log.ForContext("Class", className).Debug(type.ToString());
+
+        public void Debug(string message, MessageType type) => Log.ForContext("Class", className).Debug(string.Format(message, type.ToString()));
+
+        public void Debug(string message, IPEndPoint endPoint, string rep) => Log.ForContext("Class", className).Debug(string.Format(message, endPoint.ToString(), rep));
+
+        public void Debug(string message, TimeSpan difference) => Log.ForContext("Class", className).Debug(string.Format(message, difference.ToString()));
+
+        public void Debug(string message, string rep1, string rep2, string rep3) => Log.ForContext("Class", className).Debug(string.Format(message, rep1, rep2, rep3));
 
         public void Error(Exception ex) => Log.ForContext("Class", className).Error(ex, "");
 
@@ -111,8 +144,6 @@ namespace Bifrost
 
         public void Trace(string message) => Log.ForContext("Class", className).Verbose(message);
 
-        public void Debug(string message, MessageType? type, byte? subtype) => Log.ForContext("Class", className).Debug(string.Format(message, type.ToString(), subtype));
-    
         public void Warn(string message, ushort replace) => Log.ForContext("Class", className).Warning(string.Format(message, replace));
 
         public void Warn(string message, string rep1, string rep2) => Log.ForContext("Class", className).Warning(string.Format(message, rep1, rep2));
@@ -134,16 +165,5 @@ namespace Bifrost
         public void Warn(string message, string rep1, string rep2, int rep3) => Log.ForContext("Class", className).Warning(string.Format(message, rep1, rep2, rep3));
 
         public void Warn(string message, MessageType type, byte replace) => Log.ForContext("Class", className).Warning(string.Format(message, type.ToString(), replace));
-
-        public void Debug(MessageType type) => Log.ForContext("Class", className).Debug(type.ToString());
-
-        public void Debug(string message, MessageType type) => Log.ForContext("Class", className).Debug(string.Format(message, type.ToString()));
-
-        public void Debug(string message, IPEndPoint endPoint, string rep) => Log.ForContext("Class", className).Debug(string.Format(message, endPoint.ToString(), rep));
-
-        public void Debug(string message, TimeSpan difference) => Log.ForContext("Class", className).Debug(string.Format(message, difference.ToString()));
-
-        public void Debug(string message, string rep1, string rep2, string rep3) => Log.ForContext("Class", className).Debug(string.Format(message, rep1, rep2, rep3));
-
     }
 }
