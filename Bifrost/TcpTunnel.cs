@@ -77,6 +77,7 @@ namespace Bifrost
         /// </summary>
         public void Close()
         {
+            NetworkStream.Close(100);
             Connection.Close();
             Closed = true;
         }
@@ -125,9 +126,11 @@ namespace Bifrost
 
                 RawBytesSent += data.Length + 4;
                 DataBytesSent += data.Length;
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 Log.Error(ex);
+                Close();
             }
         }
     }
