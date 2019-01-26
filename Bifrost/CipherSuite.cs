@@ -10,84 +10,6 @@ using System.Text;
 
 namespace Bifrost
 {
-    public static class SuiteRegistry
-    {
-        public static Dictionary<ushort, Type> CipherTypes = new Dictionary<ushort, Type>();
-        public static bool Initialized = false;
-        public static Dictionary<ushort, Type> KeyExchangeTypes = new Dictionary<ushort, Type>();
-        public static Logger Log = LogManager.GetCurrentClassLogger();
-        public static Dictionary<ushort, Type> MACTypes = new Dictionary<ushort, Type>();
-
-        public static ICipher CreateCipher(ushort id)
-        {
-            Initialize();
-            if (!CipherTypes.ContainsKey(id))
-                throw new Exception(string.Format("Unknown cipher id {0}/0x{0:X2}", id));
-
-            return (ICipher)Activator.CreateInstance(CipherTypes[id]);
-        }
-
-        public static IKeyExchange CreateKeyExchange(ushort id)
-        {
-            Initialize();
-            if (!KeyExchangeTypes.ContainsKey(id))
-                throw new Exception(string.Format("Unknown key exchange id {0}/0x{0:X2}", id));
-
-            return (IKeyExchange)Activator.CreateInstance(KeyExchangeTypes[id]);
-        }
-
-        public static IMAC CreateMAC(ushort id)
-        {
-            Initialize();
-            if (!MACTypes.ContainsKey(id))
-                throw new Exception(string.Format("Unknown MAC id {0}/0x{0:X2}", id));
-
-            return (IMAC)Activator.CreateInstance(MACTypes[id]);
-        }
-
-        public static void Initialize()
-        {
-            if (Initialized)
-                return;
-
-            RegisterCipher(AesCbcCipher.Identifier, typeof(AesCbcCipher));
-            RegisterCipher(IdentityCipher.Identifier, typeof(IdentityCipher));
-            RegisterCipher(AesGcmCipher.Identifier, typeof(AesGcmCipher));
-            RegisterCipher(ChaChaCipher.Identifier, typeof(ChaChaCipher));
-
-            RegisterKeyExchange(EcdhKeyExchange.Identifier, typeof(EcdhKeyExchange));
-
-            RegisterMAC(HMACSHA.Identifier, typeof(HMACSHA));
-            RegisterMAC(IdentityMAC.Identifier, typeof(IdentityMAC));
-
-            Initialized = true;
-        }
-
-        public static void RegisterCipher(ushort id, Type type)
-        {
-            if (CipherTypes.ContainsKey(id))
-                Log.Warn("Entry {0}/0x{0:X2} being overridden in RegisterCipher!", id);
-
-            CipherTypes[id] = type;
-        }
-
-        public static void RegisterKeyExchange(ushort id, Type type)
-        {
-            if (KeyExchangeTypes.ContainsKey(id))
-                Log.Warn("Entry {0}/0x{0:X2} being overridden in RegisterKeyExchange!", id);
-
-            KeyExchangeTypes[id] = type;
-        }
-
-        public static void RegisterMAC(ushort id, Type type)
-        {
-            if (MACTypes.ContainsKey(id))
-                Log.Warn("Entry {0}/0x{0:X2} being overridden in RegisterMAC!", id);
-
-            MACTypes[id] = type;
-        }
-    }
-
     public class CipherSuite
     {
         public string HKDFAdditionalInfo =
@@ -253,11 +175,12 @@ namespace Bifrost
 
         public CipherSuite CreateSuite()
         {
+            SuiteRegistry sr = new SuiteRegistry();
             return new CipherSuite()
             {
-                Cipher = SuiteRegistry.CreateCipher(Cipher),
-                KeyExchange = SuiteRegistry.CreateKeyExchange(KeyExchange),
-                MAC = SuiteRegistry.CreateMAC(MAC)
+                Cipher = sr.CreateCipher(Cipher),
+                KeyExchange = sr.CreateKeyExchange(KeyExchange),
+                MAC = sr.CreateMAC(MAC)
             };
         }
 
@@ -293,6 +216,84 @@ namespace Bifrost
             Array.Copy(BitConverter.GetBytes(MAC), 0, ret, 4, 2);
 
             return ret;
+        }
+    }
+
+    public class SuiteRegistry
+    {
+        public Dictionary<ushort, Type> CipherTypes = new Dictionary<ushort, Type>();
+        public bool Initialized = false;
+        public Dictionary<ushort, Type> KeyExchangeTypes = new Dictionary<ushort, Type>();
+        public Logger Log = LogManager.GetCurrentClassLogger();
+        public Dictionary<ushort, Type> MACTypes = new Dictionary<ushort, Type>();
+
+        public ICipher CreateCipher(ushort id)
+        {
+            Initialize();
+            if (!CipherTypes.ContainsKey(id))
+                throw new Exception(string.Format("Unknown cipher id {0}/0x{0:X2}", id));
+
+            return (ICipher)Activator.CreateInstance(CipherTypes[id]);
+        }
+
+        public IKeyExchange CreateKeyExchange(ushort id)
+        {
+            Initialize();
+            if (!KeyExchangeTypes.ContainsKey(id))
+                throw new Exception(string.Format("Unknown key exchange id {0}/0x{0:X2}", id));
+
+            return (IKeyExchange)Activator.CreateInstance(KeyExchangeTypes[id]);
+        }
+
+        public IMAC CreateMAC(ushort id)
+        {
+            Initialize();
+            if (!MACTypes.ContainsKey(id))
+                throw new Exception(string.Format("Unknown MAC id {0}/0x{0:X2}", id));
+
+            return (IMAC)Activator.CreateInstance(MACTypes[id]);
+        }
+
+        public void Initialize()
+        {
+            if (Initialized)
+                return;
+
+            RegisterCipher(AesCbcCipher.Identifier, typeof(AesCbcCipher));
+            RegisterCipher(IdentityCipher.Identifier, typeof(IdentityCipher));
+            RegisterCipher(AesGcmCipher.Identifier, typeof(AesGcmCipher));
+            RegisterCipher(ChaChaCipher.Identifier, typeof(ChaChaCipher));
+
+            RegisterKeyExchange(EcdhKeyExchange.Identifier, typeof(EcdhKeyExchange));
+
+            RegisterMAC(HMACSHA.Identifier, typeof(HMACSHA));
+            RegisterMAC(IdentityMAC.Identifier, typeof(IdentityMAC));
+
+            Initialized = true;
+        }
+
+        public void RegisterCipher(ushort id, Type type)
+        {
+            if (CipherTypes.ContainsKey(id))
+                Log.Warn("Entry {0}/0x{0:X2} being overridden in RegisterCipher!", id);
+
+            CipherTypes[id] = type;
+        }
+
+        public void RegisterKeyExchange(ushort id, Type type)
+        {
+            if (KeyExchangeTypes.ContainsKey(id))
+                Log.Warn("Entry {0}/0x{0:X2} being overridden in RegisterKeyExchange!", id);
+
+            KeyExchangeTypes[id] = type;
+        }
+
+        public void RegisterMAC(ushort id, Type type)
+        {
+            if (MACTypes.ContainsKey(id))
+                Log.Warn("Entry {0}/0x{0:X2} being overridden in RegisterMAC!", id);
+
+            MACTypes[id] = type;
         }
     }
 }
