@@ -338,7 +338,7 @@ namespace Bifrost
                 _SendMessage(msg);
             }
 
-            Log.Error("SendLoop exited.");
+            Log.Trace("SendLoop exited.");
         }
     }
 }
