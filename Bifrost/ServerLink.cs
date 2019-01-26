@@ -157,8 +157,8 @@ namespace Bifrost
 
             if (RemoteCertificateAuthority != null)
             {
-                Log.Debug("Known certificate found and loaded!");
                 TrustedCertificateUsed = CertManager.IsCertificateTrusted(remoteCertificateHash);
+                Log.Debug("Known certificate found and loaded: " + (TrustedCertificateUsed ? "Trusted" : "Untrusted"));
             }
             else if (RememberRemoteCertAuthority)
             {

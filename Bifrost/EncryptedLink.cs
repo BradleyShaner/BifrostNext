@@ -248,6 +248,7 @@ namespace Bifrost
                 return;
 
             CertManager.SetCertificateTrusted(remoteCertificateHash, trusted);
+            this.TrustedCertificateUsed = true;
         }
 
         /// <summary>

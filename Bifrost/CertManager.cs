@@ -196,6 +196,8 @@ namespace Bifrost
 
                 lock (_KnownCertificateLock)
                     KnownCertificates = new List<CertAuthInfo>();
+
+                SaveKnownCertificates();
             }
         }
 
