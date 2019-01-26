@@ -12,7 +12,6 @@ namespace Bifrost
     public class ClientLink : EncryptedLink
     {
         private Logger Log = LogManager.GetCurrentClassLogger();
-        public bool AuthenticateSelf { get; set; }
 
         /// <summary>
         /// Creates a new EncryptedLink object from the perspective of a server.
@@ -20,10 +19,16 @@ namespace Bifrost
         /// <param name="tunnel">The ITunnel to use.</param>
         /// <param name="auth_self">If auth_self is set to true, the loaded RSA keys are used to authenticate ourselves to the server.
         /// If auth_client is set to true on the server, auth_self must also be true, otherwise the handshake will fail.</param>
-        public ClientLink(ITunnel tunnel, bool auth_self = true)
+        public ClientLink(ITunnel tunnel, bool noAuthentication = false, bool rememberRemoteCertAuthority = false)
         {
             Tunnel = tunnel;
-            AuthenticateSelf = auth_self;
+            NoAuthentication = noAuthentication;
+            RememberRemoteCertAuthority = rememberRemoteCertAuthority;
+        }
+
+        public EncryptedLink GetEncryptedLink()
+        {
+            return (EncryptedLink)this;
         }
 
         public HandshakeResult PerformHandshake(List<CipherSuiteIdentifier> allowed_suites = null)
@@ -136,11 +141,29 @@ namespace Bifrost
             }
 
             byte[] rsa_public_key = msg.Store["rsa_public_key"];
+            byte[] ca_public_key = msg.Store["ca_public_key"];
             byte[] rsa_signature = msg.Store["rsa_signature"];
             byte[] ecdh_public_key = msg.Store["ecdh_public_key"];
             byte[] ecdh_signature = msg.Store["ecdh_signature"];
-
+            string cert_name = Encoding.UTF8.GetString(msg.Store["cert_name"]);
             PeerSignature = rsa_signature;
+
+            remoteCertificateHash = Convert.ToBase64String(SHA.ComputeHash(msg.Store["ca_public_key"]));
+            RemoteCertificateAuthority = CertManager.RetrievePublicCertificateByHash(remoteCertificateHash);
+            //RemoteCertificate = CertManager.RetrievePrivateCertificateByHash(remoteCertificateHash);
+
+            if (RemoteCertificateAuthority != null)
+            {
+                Log.Debug("Known certificate found and loaded!");
+                TrustedCertificateUsed = CertManager.IsCertificateTrusted(remoteCertificateHash);
+            }
+            else if (RememberRemoteCertAuthority)
+            {
+                Log.Debug("Known certificate not found, adding..");
+                CertManager.AddKnownCertificateAuthority(cert_name, remoteCertificateHash, Encoding.UTF8.GetString(ca_public_key));
+                RemoteCertificateAuthority = CertManager.RetrievePublicCertificateByHash(remoteCertificateHash);
+                TrustedCertificateUsed = false;
+            }
 
             byte[] shared_salt = msg.Store["shared_salt"];
             byte[] salt_signature = msg.Store["shared_salt_signature"];
@@ -166,18 +189,33 @@ namespace Bifrost
             }
 
             Log.Debug("Clock drift between peers is {0}.", difference);
-
-            if (!RsaHelpers.VerifyData(rsa_public_key, rsa_signature, CertificateAuthority))
+            if (!NoAuthentication)
             {
-                var result = new HandshakeResult(HandshakeResultType.UntrustedStaticPublicKey, "Failed to verify RSA public key against certificate authority. Terminating handshake.");
-                Log.Error(result.Message);
-                Tunnel.Close();
-                return result;
+                if (RemoteCertificateAuthority != null)
+                {
+                    if (!RsaHelpers.VerifyData(rsa_public_key, rsa_signature, RemoteCertificateAuthority))
+                    {
+                        if (!RsaHelpers.VerifyData(rsa_public_key, rsa_signature, CertificateAuthority))
+                        {
+                            var result = new HandshakeResult(HandshakeResultType.UntrustedStaticPublicKey, "1. Failed to verify RSA public key against certificate authority. Terminating handshake.");
+                            Log.Error(result.Message);
+                            Tunnel.Close();
+                            return result;
+                        }
+                    }
+                }
+                else if (!RsaHelpers.VerifyData(rsa_public_key, rsa_signature, CertificateAuthority))
+                {
+                    var result = new HandshakeResult(HandshakeResultType.UntrustedStaticPublicKey, "2. Failed to verify RSA public key against certificate authority. Terminating handshake.");
+                    Log.Error(result.Message);
+                    Tunnel.Close();
+                    return result;
+                }
             }
 
-            var parameters = (RsaKeyParameters)RsaHelpers.PemDeserialize(Encoding.UTF8.GetString(rsa_public_key));
+            RsaKeyParameters parameters = (RsaKeyParameters)RsaHelpers.PemDeserialize(Encoding.UTF8.GetString(rsa_public_key));
 
-            if (!RsaHelpers.VerifyData(ecdh_public_key, ecdh_signature, parameters))
+            if (!NoAuthentication && !RsaHelpers.VerifyData(ecdh_public_key, ecdh_signature, parameters))
             {
                 var result = new HandshakeResult(HandshakeResultType.UntrustedEphemeralPublicKey, "Failed to verify ECDH public key authenticity. Terminating handshake.");
                 Log.Error(result.Message);
