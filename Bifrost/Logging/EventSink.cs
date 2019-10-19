@@ -74,7 +74,10 @@ namespace Bifrost
                 ISynchronizeInvoke syncer = d.Target as ISynchronizeInvoke;
                 if (syncer == null)
                 {
+                    try { 
                     d.DynamicInvoke(args);
+                    }
+                    catch { }
                 }
                 else
                 {
