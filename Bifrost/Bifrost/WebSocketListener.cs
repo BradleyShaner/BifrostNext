@@ -4,7 +4,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 
-namespace Bifrost
+namespace BifrostLSF
 {
     public class WebSocketListener : IListener
     {

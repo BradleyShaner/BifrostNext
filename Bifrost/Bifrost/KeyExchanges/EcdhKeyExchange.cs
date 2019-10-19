@@ -9,7 +9,7 @@ using Org.BouncyCastle.Security;
 using System.IO;
 using System.Text;
 
-namespace Bifrost.KeyExchanges
+namespace BifrostLSF.KeyExchanges
 {
     public class EcdhKeyExchange : IKeyExchange
     {

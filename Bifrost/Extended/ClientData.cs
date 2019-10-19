@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Net;
 
-namespace Bifrost
+namespace BifrostLSF
 {
     public enum AuthState
     {

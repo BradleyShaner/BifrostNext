@@ -1,6 +1,6 @@
 ﻿using System.Net;
 
-namespace Bifrost.Udp
+namespace BifrostLSF.Udp
 {
     public class UdpTunnel : ITunnel
     {

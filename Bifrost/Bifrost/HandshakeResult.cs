@@ -1,4 +1,4 @@
-﻿namespace Bifrost
+﻿namespace BifrostLSF
 {
     public enum HandshakeResultType
     {

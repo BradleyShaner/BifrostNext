@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 
-namespace Bifrost
+namespace BifrostLSF
 {
     public class ServerLink : EncryptedLink
     {

@@ -1,4 +1,4 @@
-﻿namespace Bifrost.KeyExchanges
+﻿namespace BifrostLSF.KeyExchanges
 {
     public interface IKeyExchange
     {

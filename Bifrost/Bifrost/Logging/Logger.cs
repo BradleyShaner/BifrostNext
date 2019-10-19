@@ -5,7 +5,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Reflection;
 
-namespace Bifrost
+namespace BifrostLSF
 {
     //
     // Summary:

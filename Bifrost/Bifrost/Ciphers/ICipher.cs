@@ -1,4 +1,4 @@
-﻿namespace Bifrost.Ciphers
+﻿namespace BifrostLSF.Ciphers
 {
     public interface ICipher
     {

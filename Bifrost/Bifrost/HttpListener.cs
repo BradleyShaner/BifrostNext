@@ -1,7 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Net.Sockets;
 
-namespace Bifrost
+namespace BifrostLSF
 {
     public class HttpListener : IListener
     {

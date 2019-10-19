@@ -9,7 +9,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Bifrost
+namespace BifrostLSF
 {
     public static class CertManager
     {

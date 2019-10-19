@@ -2,7 +2,7 @@
 using Org.BouncyCastle.Crypto.Parameters;
 using System;
 
-namespace Bifrost.Ciphers
+namespace BifrostLSF.Ciphers
 {
     public class ChaChaCipher : ICipher
     {

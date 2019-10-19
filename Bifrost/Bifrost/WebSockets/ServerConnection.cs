@@ -5,7 +5,7 @@ using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Bifrost.WebSockets
+namespace BifrostLSF.WebSockets
 {
     public delegate void DataReceived(object sender, WebSocketMessage message, byte[] payload);
 

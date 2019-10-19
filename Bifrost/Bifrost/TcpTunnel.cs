@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Net.Sockets;
 
-namespace Bifrost
+namespace BifrostLSF
 {
     /// <summary>
     /// Tunnels Bifrost data over very simple TCP. 4 bytes of overhead per message.

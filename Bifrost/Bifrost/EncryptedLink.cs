@@ -11,7 +11,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 
-namespace Bifrost
+namespace BifrostLSF
 {
     public delegate void DataReceived(EncryptedLink link, Dictionary<string, byte[]> Store);
 

@@ -5,7 +5,7 @@ using System;
 using System.IO;
 using System.Security.Cryptography;
 
-namespace Bifrost.Ciphers
+namespace BifrostLSF.Ciphers
 {
     public class AesGcmCipher : ICipher
     {

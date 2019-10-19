@@ -1,6 +1,6 @@
 ﻿using System.Collections.Concurrent;
 
-namespace Bifrost
+namespace BifrostLSF
 {
     public interface IListener
     {

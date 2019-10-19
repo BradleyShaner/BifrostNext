@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Threading;
 
-namespace Bifrost
+namespace BifrostLSF
 {
     public class Utilities
     {

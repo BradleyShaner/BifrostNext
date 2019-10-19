@@ -9,7 +9,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Xml.Linq;
 
-namespace Bifrost
+namespace BifrostLSF
 {
     public class RsaHelpers
     {

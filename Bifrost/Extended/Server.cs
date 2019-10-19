@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Bifrost
+namespace BifrostLSF
 {
     public class Server
     {

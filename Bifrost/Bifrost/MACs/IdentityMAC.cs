@@ -1,4 +1,4 @@
-﻿namespace Bifrost.MACs
+﻿namespace BifrostLSF.MACs
 {
     public class IdentityMAC : IMAC
     {

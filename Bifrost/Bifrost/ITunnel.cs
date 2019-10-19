@@ -1,4 +1,4 @@
-﻿namespace Bifrost
+﻿namespace BifrostLSF
 {
     /// <summary>
     /// Describes a common interface that all tunnels should implement.

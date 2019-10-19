@@ -2,7 +2,7 @@
 using System.IO;
 using System.Text;
 
-namespace Bifrost
+namespace BifrostLSF
 {
     public static class Extensions
     {

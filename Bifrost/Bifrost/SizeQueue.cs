@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Threading;
 
-namespace Bifrost
+namespace BifrostLSF
 {
     public class SizeQueue<T>
     {

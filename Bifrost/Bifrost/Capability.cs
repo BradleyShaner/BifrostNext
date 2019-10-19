@@ -1,4 +1,4 @@
-﻿namespace Bifrost
+﻿namespace BifrostLSF
 {
     internal enum Capability
     {

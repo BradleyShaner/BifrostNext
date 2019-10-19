@@ -4,7 +4,7 @@ using System.IO.Compression;
 using System.Net.Sockets;
 using System.Text;
 
-namespace Bifrost
+namespace BifrostLSF
 {
     /// <summary>
     /// Tunnels Bifrost data over pseudo-HTTP. Useful for working across HTTP proxies.

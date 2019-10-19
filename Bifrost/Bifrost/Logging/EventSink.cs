@@ -8,7 +8,7 @@ using System.ComponentModel;
 using System.IO;
 using static Bifrost.Delegates;
 
-namespace Bifrost
+namespace BifrostLSF
 {
     public class Delegates
     {

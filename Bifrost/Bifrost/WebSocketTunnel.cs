@@ -3,7 +3,7 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 
-namespace Bifrost
+namespace BifrostLSF
 {
     public class WebSocketTunnel : ITunnel
     {
