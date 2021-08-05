@@ -217,7 +217,7 @@ namespace BifrostNext.BifrostLSF
 
             if (raw_message == null || raw_message.Length == 0)
             {
-                Log.Trace("Empty read from ITunnel");
+                //Log.Trace("Empty read from ITunnel");
                 return null;
             }
 
@@ -327,7 +327,7 @@ namespace BifrostNext.BifrostLSF
 
                 if (msg == null)
                 {
-                    Log.Trace("Null message, continuing");
+                    //Log.Trace("Null message, continuing");
                     continue;
                 }
 
