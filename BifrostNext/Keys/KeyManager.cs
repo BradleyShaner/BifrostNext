@@ -152,6 +152,7 @@ namespace BifrostNext.Keys
 
         private static void GenerateKeys()
         {
+            // TODO: Write unused keys to disk for retrieval, speeds up server startup significantly
             var (ca, priv, sign) = CertManager.GenerateKeys();
             logger.Trace($"Computing new connection key..");
             precomputedKeys.Enqueue(new KeyData(ca, priv, sign));

@@ -14,26 +14,28 @@ namespace BifrostNext
 {
     public static class CertManager
     {
-        private static object _KnownCertificateLock = new object();
-        private static string CertificateAuthorityPrivateKey;
-        private static string CertificateAuthorityPublicKey;
-        private static List<CertAuthInfo> KnownCertificates;
+        private static object _knownCertificateLock = new object();
+        private static string _certificateAuthorityPrivateKey;
+        private static string _certificateAuthorityPublicKey;
+        private static List<CertAuthInfo> _knownCertificates;
+
+        private static AsymmetricCipherKeyPair _certAuthority;
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
         public static void AddKnownCertificateAuthority(string name, string hash, string certAuthorityPublicKey)
         {
             bool save = false;
-            lock (_KnownCertificateLock)
+            lock (_knownCertificateLock)
             {
-                var item = KnownCertificates.FirstOrDefault(x => x.hash == hash);
+                var item = _knownCertificates.FirstOrDefault(x => x.hash == hash);
 
                 if (item != null)
                 {
                     logger.Warn($"Certificate for {item.name} is already known.");
                     return;
                 }
-                KnownCertificates.Add(new CertAuthInfo(name, hash, certAuthorityPublicKey));
+                _knownCertificates.Add(new CertAuthInfo(name, hash, certAuthorityPublicKey));
                 save = true;
             }
 
@@ -65,8 +67,8 @@ namespace BifrostNext
                 //write the CA pub/priv keys
                 WriteFile($"{caPath}", RsaHelpers.PemSerialize(pair.Public));
                 WriteFile($"{privCaKeyPath}", RsaHelpers.PemSerialize(pair));
-                CertificateAuthorityPrivateKey = RsaHelpers.PemSerialize(pair);
-                CertificateAuthorityPublicKey = RsaHelpers.PemSerialize(pair.Public);
+                _certificateAuthorityPrivateKey = RsaHelpers.PemSerialize(pair);
+                _certificateAuthorityPublicKey = RsaHelpers.PemSerialize(pair.Public);
             }
 
             return;
@@ -74,24 +76,26 @@ namespace BifrostNext
 
         public static (string certAuthority, string clientPrivateKey, byte[] clientSignKey) GenerateKeys(string caPath = "")
         {
-            AsymmetricCipherKeyPair certAuthority;
             string privCaKeyPath;
 
-            if (string.IsNullOrWhiteSpace(caPath))
+            if (_certAuthority == null)
             {
-                caPath = $"{Environment.MachineName}.ca";
+                if (string.IsNullOrWhiteSpace(caPath))
+                {
+                    caPath = $"{Environment.MachineName}.ca";
+                }
+
+                privCaKeyPath = caPath.ToLower().Replace(".ca", ".privkey");
+
+                if (String.IsNullOrWhiteSpace(_certificateAuthorityPrivateKey))
+                    _certificateAuthorityPrivateKey = File.ReadAllText($"{privCaKeyPath}");
+
+                string caPrivKey = _certificateAuthorityPrivateKey;
+                _certAuthority = (AsymmetricCipherKeyPair)RsaHelpers.PemDeserialize(caPrivKey);
             }
 
-            privCaKeyPath = caPath.ToLower().Replace(".ca", ".privkey");
-
-            if (String.IsNullOrWhiteSpace(CertificateAuthorityPrivateKey))
-                CertificateAuthorityPrivateKey = File.ReadAllText($"{privCaKeyPath}");
-
-            string caPrivKey = CertificateAuthorityPrivateKey;
-            certAuthority = (AsymmetricCipherKeyPair)RsaHelpers.PemDeserialize(caPrivKey);
-
-            if (String.IsNullOrWhiteSpace(CertificateAuthorityPublicKey))
-                CertificateAuthorityPublicKey = RsaHelpers.PemSerialize(certAuthority.Public);
+            if (String.IsNullOrWhiteSpace(_certificateAuthorityPublicKey))
+                _certificateAuthorityPublicKey = RsaHelpers.PemSerialize(_certAuthority.Public);
 
             logger.Trace("Generating new keys..");
             var key = new RSACryptoServiceProvider(2048);
@@ -101,17 +105,17 @@ namespace BifrostNext
             string pub = RsaHelpers.PemSerialize(pair.Public);
             string priv = RsaHelpers.PemSerialize(pair);
 
-            if (certAuthority != null)
+            if (_certAuthority != null)
             {
                 logger.Trace("Signing keys..");
-                var signature = RsaHelpers.SignData(Encoding.UTF8.GetBytes(pub), certAuthority);
+                var signature = RsaHelpers.SignData(Encoding.UTF8.GetBytes(pub), _certAuthority);
 
                 logger.Trace("Verifying key signature...");
-                if (RsaHelpers.VerifyData(Encoding.UTF8.GetBytes(pub), signature, certAuthority))
+                if (RsaHelpers.VerifyData(Encoding.UTF8.GetBytes(pub), signature, _certAuthority))
                 {
                     logger.Trace("Signature validated!");
 
-                    return (CertificateAuthorityPublicKey, priv, signature);
+                    return (_certificateAuthorityPublicKey, priv, signature);
                 }
                 logger.Error("Signature validation failed!");
             }
@@ -120,9 +124,9 @@ namespace BifrostNext
 
         public static bool IsCertificateTrusted(string hash)
         {
-            lock (_KnownCertificateLock)
+            lock (_knownCertificateLock)
             {
-                var item = KnownCertificates.FirstOrDefault(x => x.hash == hash);
+                var item = _knownCertificates.FirstOrDefault(x => x.hash == hash);
 
                 if (item != null && item.trusted)
                 {
@@ -135,12 +139,12 @@ namespace BifrostNext
 
         public static RsaKeyParameters RetrievePublicCertificateByHash(string hash)
         {
-            if (KnownCertificates == null)
+            if (_knownCertificates == null)
                 LoadKnownCertificates();
 
-            lock (_KnownCertificateLock)
+            lock (_knownCertificateLock)
             {
-                var item = KnownCertificates.FirstOrDefault(x => x.hash == hash);
+                var item = _knownCertificates.FirstOrDefault(x => x.hash == hash);
 
                 if (item != null)
                     return (RsaKeyParameters)RsaHelpers.PemDeserialize(item.publicKey);
@@ -151,11 +155,11 @@ namespace BifrostNext
 
         public static void SaveKnownCertificates()
         {
-            lock (_KnownCertificateLock)
+            lock (_knownCertificateLock)
             {
                 try
                 {
-                    File.WriteAllText("KnownCerts.json", JsonConvert.SerializeObject(KnownCertificates, Formatting.Indented));
+                    File.WriteAllText("KnownCerts.json", JsonConvert.SerializeObject(_knownCertificates, Formatting.Indented));
                     logger.Debug("Wrote KnownCerts.json successfully!");
                 }
                 catch (Exception ex)
@@ -168,9 +172,9 @@ namespace BifrostNext
         public static void SetCertificateTrusted(string hash, bool trusted)
         {
             bool save = false;
-            lock (_KnownCertificateLock)
+            lock (_knownCertificateLock)
             {
-                var item = KnownCertificates.FirstOrDefault(x => x.hash == hash);
+                var item = _knownCertificates.FirstOrDefault(x => x.hash == hash);
 
                 if (item != null && item.trusted != trusted)
                 {
@@ -188,8 +192,8 @@ namespace BifrostNext
         {
             try
             {
-                lock (_KnownCertificateLock)
-                    KnownCertificates = JsonConvert.DeserializeObject<List<CertAuthInfo>>(File.ReadAllText("KnownCerts.json"));
+                lock (_knownCertificateLock)
+                    _knownCertificates = JsonConvert.DeserializeObject<List<CertAuthInfo>>(File.ReadAllText("KnownCerts.json"));
             }
 #pragma warning disable CS0168 // Variable is declared but never used
             catch (Exception ex)
@@ -197,8 +201,8 @@ namespace BifrostNext
             {
                 logger.Warn("LoadKnownCertificates failed. Creating new KnownCerts.json..");
 
-                lock (_KnownCertificateLock)
-                    KnownCertificates = new List<CertAuthInfo>();
+                lock (_knownCertificateLock)
+                    _knownCertificates = new List<CertAuthInfo>();
 
                 SaveKnownCertificates();
             }
