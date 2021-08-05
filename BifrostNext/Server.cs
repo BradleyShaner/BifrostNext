@@ -49,7 +49,7 @@ namespace BifrostNext
 
         public void SetLogLevel(SerilogLogLevel logLevel)
         {
-            LogManager.SetMinimumLogLevel((SerilogLogLevel)logLevel);
+            LogManager.SetMinimumLogLevel(logLevel);
         }
 
         public void IgnoreLogClass(string ignoredClass)
@@ -183,7 +183,7 @@ namespace BifrostNext
             return true;
         }
 
-        public bool Start(int listenPort)
+        public bool Start(int listenPort, int keysToPreCalculate = 0)
         {
             serverCancellationToken = serverCancellationTokenSource.Token;
             try
@@ -197,7 +197,15 @@ namespace BifrostNext
                 return false;
             }
 
-            Task.Factory.StartNew(() => KeyManager.MonitorKeyGeneration(serverCancellationToken),
+            if (keysToPreCalculate == 0)
+            {
+                if (MaxConnections >= 10)
+                    keysToPreCalculate = MaxConnections / 10;
+                else
+                    keysToPreCalculate = 1;
+            }
+
+            Task.Factory.StartNew(() => KeyManager.MonitorKeyGeneration(serverCancellationToken, keysToPreCalculate),
                     serverCancellationToken,
                     TaskCreationOptions.LongRunning,
                     TaskScheduler.Default);
@@ -219,8 +227,10 @@ namespace BifrostNext
 
             IsRunning = false;
 
-            listener.Stop();
-            listener = null;
+            if (listener != null) 
+                listener.Stop();
+            else
+                listener = null;
 
             lock (_UserListLock)
             {

@@ -11,8 +11,8 @@ namespace BifrostNext.Keys
 {
     public static class KeyManager
     {
-        public static int maxKeyThreads = Environment.ProcessorCount / 2;
-        public static int precomputeKeyCount = maxKeyThreads * 5;
+        public static int maxKeyThreads = 1;
+        public static int keysToPreCalculate = 5;
         public static List<UserConnection> users = new List<UserConnection>();
         private static int currentKeyThreads = 0;
         private static ManualResetEvent keyGeneration = new ManualResetEvent(true);
@@ -26,14 +26,19 @@ namespace BifrostNext.Keys
             int keysGenerated = 0;
             while (!token.IsCancellationRequested && (keysToGenerate > keysGenerated))
             {
-                if (precomputedKeys.Count < precomputeKeyCount)
+                if (precomputedKeys.Count < keysToPreCalculate)
                 {
-                    var (ca, priv, sign) = CertManager.GenerateKeys();
-                    logger.Trace($"Computing new connection key..");
-                    precomputedKeys.Enqueue(new KeyData(ca, priv, sign));
+                    GenerateKeys();
                     keysGenerated++;
                 }
             }
+        }
+
+        private static void GenerateKeys()
+        {
+            var (ca, priv, sign) = CertManager.GenerateKeys();
+            logger.Trace($"Computing new connection key..");
+            precomputedKeys.Enqueue(new KeyData(ca, priv, sign));
         }
 
         public static (string certAuthority, string privateKey, byte[] signKey) GetNextAvailableKeys()
@@ -47,6 +52,8 @@ namespace BifrostNext.Keys
             while (timeout.ElapsedMilliseconds < 5000 && !precomputedKeys.TryDequeue(out keys))
             {
                 //there are no precomputedkeys available..
+                logger.Warn("No pre-computed keys were found, generating a new keypair..");
+                GenerateKeys();
                 Thread.Sleep(10);
             }
 
@@ -65,39 +72,54 @@ namespace BifrostNext.Keys
             return (ca, priv, sign);
         }
 
-        public static void MonitorKeyGeneration(CancellationToken serverCancellationToken)
+        public static void MonitorKeyGeneration(CancellationToken serverCancellationToken, int preCalculateKeyCount = 0)
         {
+
+            if (preCalculateKeyCount == -1)
+                return;
+
             logger.Debug("Starting KeyGenerationMonitor thread..");
+            if (Environment.ProcessorCount < 4)
+                maxKeyThreads = 1;
+            else
+                maxKeyThreads = Environment.ProcessorCount / 4;
+
+            if (preCalculateKeyCount <= 0)
+                keysToPreCalculate = maxKeyThreads * 2;
+            else
+                keysToPreCalculate = preCalculateKeyCount;
+
             int stepping;
+            int threadsToBeRunning = 0;
 
             while (!serverCancellationToken.IsCancellationRequested)
             {
-                if (currentKeyThreads >= maxKeyThreads)
+
+                if (threadsToBeRunning != 0 && currentKeyThreads >= threadsToBeRunning)
                 {
                     Thread.Sleep(100);
                     continue;
                 }
 
-                if (precomputeKeyCount == AvailablePrecomputedKeys)
+                if (keysToPreCalculate <= AvailablePrecomputedKeys)
                 {
                     Thread.Sleep(100);
                     continue;
                 }
 
-                int threadsToBeRunning = 0;
-                stepping = precomputeKeyCount / maxKeyThreads;
+                stepping = keysToPreCalculate / maxKeyThreads;
 
-                if ((maxKeyThreads * 2) > precomputeKeyCount)
+                if ((maxKeyThreads * 2) > keysToPreCalculate)
                 {
                     threadsToBeRunning = 1;
-                    stepping = precomputeKeyCount - AvailablePrecomputedKeys;
+                    stepping = keysToPreCalculate - AvailablePrecomputedKeys;
                 }
                 else
                 {
                     if (AvailablePrecomputedKeys == 0)
-                        threadsToBeRunning = precomputeKeyCount / stepping;
+                        threadsToBeRunning = keysToPreCalculate / stepping;
                     else
-                        threadsToBeRunning = (precomputeKeyCount - AvailablePrecomputedKeys) / stepping;
+                        threadsToBeRunning = (keysToPreCalculate - AvailablePrecomputedKeys) / stepping;
 
                     if (threadsToBeRunning != 0 && (currentKeyThreads >= threadsToBeRunning))
                         continue;
@@ -105,7 +127,7 @@ namespace BifrostNext.Keys
                     if (threadsToBeRunning == 0)
                     {
                         threadsToBeRunning = 1;
-                        stepping = precomputeKeyCount - AvailablePrecomputedKeys;
+                        stepping = keysToPreCalculate - AvailablePrecomputedKeys;
                     }
 
                     if (threadsToBeRunning > maxKeyThreads)
@@ -128,7 +150,7 @@ namespace BifrostNext.Keys
                         TaskScheduler.Default).ContinueWith(taskResult =>
                         {
                             currentKeyThreads--;
-                            logger.Trace($"KeyGeneration task {taskResult.Id} has finished.");
+                            logger.Trace($"KeyGeneration task {taskResult.Id} has finished. Total Available Keys: {AvailablePrecomputedKeys}");
                         });
                         currentKeyThreads++;
                     }
