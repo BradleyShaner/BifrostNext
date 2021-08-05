@@ -7,7 +7,7 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace BifrostNext.Extended.Keys
+namespace BifrostNext.Keys
 {
     public static class KeyManager
     {

@@ -1,5 +1,4 @@
-﻿using BifrostNext.Extended.Messages;
-using BifrostNext.Extended;
+﻿using BifrostNext.Messages;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -8,9 +7,9 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using BifrostNext.Extended.Keys;
 using BifrostNext.BifrostLSF;
 using static BifrostNext.Delegates;
+using BifrostNext.Keys;
 
 namespace BifrostNext
 {

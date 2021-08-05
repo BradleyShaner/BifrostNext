@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using BifrostNext.BifrostLSF;
-using BifrostNext.Extended.Messages;
+using BifrostNext.Messages;
 using static BifrostNext.Delegates;
 
 namespace BifrostNext
@@ -37,7 +37,7 @@ namespace BifrostNext
 
         public Client()
         {
-            LogManager.SetMinimumLogLevel(BifrostNext.SerilogLogLevel.Information);
+            LogManager.SetMinimumLogLevel(SerilogLogLevel.Information);
             EventSink.OnLogEvent += EventSink_OnLogEvent;
 
             BifrostNext.CertManager.GenerateCertificateAuthority();
@@ -45,7 +45,7 @@ namespace BifrostNext
 
         public void SetLogLevel(SerilogLogLevel logLevel)
         {
-            LogManager.SetMinimumLogLevel((SerilogLogLevel)logLevel);
+            LogManager.SetMinimumLogLevel(logLevel);
         }
 
         public void IgnoreLogClass(string ignoredClass)

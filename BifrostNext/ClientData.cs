@@ -1,8 +1,6 @@
-﻿using System;
+﻿using BifrostNext.Keys;
+using System;
 using System.Net;
-using BifrostNext;
-using BifrostNext.Extended;
-using BifrostNext.Extended.Keys;
 
 namespace BifrostNext
 {

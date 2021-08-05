@@ -1,11 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <TargetFrameworks>netstandard2.0</TargetFrameworks>
+        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
         <Authors>hexafluoride,LostSoulFly</Authors>
         <Company />
         <Product />
-        <Description>A lightweight cryptographic network protocol</Description>
-        <Copyright>hexafluoride</Copyright>
+        <Description>A lightweight cryptographic network protocol modified by LostSoulFly</Description>
+        <Copyright>hexafluoride,LostSoulFly</Copyright>
         <PackageLicenseUrl>https://github.com/LostSoulfly/BifrostLSF/blob/master/LICENSE</PackageLicenseUrl>
         <PackageProjectUrl>https://github.com/LostSoulfly/BifrostLSF</PackageProjectUrl>
         <RepositoryUrl>https://github.com/LostSoulfly/BifrostLSF</RepositoryUrl>
@@ -15,15 +16,19 @@
         <AssemblyName>BifrostNext</AssemblyName>
         <RootNamespace>BifrostNext</RootNamespace>
     </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netstandard2.0|AnyCPU'">
+      <DefineConstants />
+    </PropertyGroup>
     <ItemGroup>
       <Compile Remove="Extended\**" />
       <EmbeddedResource Remove="Extended\**" />
       <None Remove="Extended\**" />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="BouncyCastle.NetCoreSdk" Version="1.9.3.1" />
+        <PackageReference Include="BouncyCastle.NetCore" Version="1.8.8" />
         <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-        <PackageReference Include="Serilog" Version="2.10.1-dev-01343" />
+        <PackageReference Include="Portable.BouncyCastle" Version="1.8.10" />
+        <PackageReference Include="Serilog" Version="2.10.0" />
     </ItemGroup>
     <ItemGroup>
       <Folder Include="Properties\" />
