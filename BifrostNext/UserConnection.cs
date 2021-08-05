@@ -1,5 +1,4 @@
-﻿using BifrostNext;
-using BifrostNext.BifrostLSF;
+﻿using BifrostNext.BifrostLSF;
 using System.Net.Sockets;
 
 namespace BifrostNext

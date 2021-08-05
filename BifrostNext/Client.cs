@@ -1,18 +1,20 @@
-﻿using Newtonsoft.Json;
+﻿using BifrostNext.BifrostLSF;
+using BifrostNext.Messages;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using BifrostNext.BifrostLSF;
-using BifrostNext.Messages;
 using static BifrostNext.Delegates;
 
 namespace BifrostNext
 {
     public class Client
     {
+        public bool IsConnected { get; private set; }
+        public bool IsConnecting { get; private set; }
         public bool AutoReconnect = true;
         public ClientData ClientData;
         public bool NoAuthentication = false;
@@ -31,26 +33,12 @@ namespace BifrostNext
 
         public event Delegates.LogMessage OnLogEvent;
 
-        public bool IsConnected { get; private set; }
-
-        public bool IsConnecting { get; private set; }
-
         public Client()
         {
             LogManager.SetMinimumLogLevel(SerilogLogLevel.Information);
             EventSink.OnLogEvent += EventSink_OnLogEvent;
 
             BifrostNext.CertManager.GenerateCertificateAuthority();
-        }
-
-        public void SetLogLevel(SerilogLogLevel logLevel)
-        {
-            LogManager.SetMinimumLogLevel(logLevel);
-        }
-
-        public void IgnoreLogClass(string ignoredClass)
-        {
-            LogManager.IgnoreLogClass(ignoredClass);
         }
 
         public bool Connect(string host, int port)
@@ -79,12 +67,21 @@ namespace BifrostNext
                 return true;
             else
                 return false;
-
         }
 
         public EncryptedLink GetServerFromLink(ClientLink clientLink)
         {
             return clientLink.GetEncryptedLink();
+        }
+
+        public void IgnoreLogClass(string ignoredClass)
+        {
+            LogManager.IgnoreLogClass(ignoredClass);
+        }
+
+        public bool IsConnectionTrusted()
+        {
+            return link.TrustedCertificateUsed;
         }
 
         public bool SendMessage(IMessage msg)
@@ -109,6 +106,11 @@ namespace BifrostNext
             return true;
         }
 
+        public void SetLogLevel(SerilogLogLevel logLevel)
+        {
+            LogManager.SetMinimumLogLevel(logLevel);
+        }
+
         public void Stop()
         {
             if (clientCancellationToken.CanBeCanceled)
@@ -126,14 +128,8 @@ namespace BifrostNext
             ClientData.Connection.ClientLink.SetCertificateAuthorityTrust(trusted);
         }
 
-        public bool IsConnectionTrusted()
-        {
-            return link.TrustedCertificateUsed;
-        }
-
         private void ConnectThread(CancellationToken cancellationToken, string host, int port)
         {
-
             if (cancellationToken.IsCancellationRequested)
                 return;
 

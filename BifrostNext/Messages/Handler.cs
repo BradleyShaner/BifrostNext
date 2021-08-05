@@ -1,5 +1,4 @@
-﻿using BifrostNext;
-using BifrostNext.BifrostLSF;
+﻿using BifrostNext.BifrostLSF;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;

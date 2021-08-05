@@ -1,5 +1,4 @@
-﻿using BifrostNext;
-using BifrostNext.BifrostLSF;
+﻿using BifrostNext.BifrostLSF;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -11,14 +10,14 @@ namespace BifrostNext.Keys
 {
     public static class KeyManager
     {
-        public static int maxKeyThreads = 1;
+        public static int AvailablePrecomputedKeys { get => precomputedKeys.Count; }
         public static int keysToPreCalculate = 5;
+        public static int maxKeyThreads = 1;
         public static List<UserConnection> users = new List<UserConnection>();
         private static int currentKeyThreads = 0;
         private static ManualResetEvent keyGeneration = new ManualResetEvent(true);
         private static Logger logger = LogManager.GetCurrentClassLogger();
         private static ConcurrentQueue<KeyData> precomputedKeys = new ConcurrentQueue<KeyData>();
-        public static int AvailablePrecomputedKeys { get => precomputedKeys.Count; }
 
         public static void GenerateConnectionKeys(CancellationToken token, int keysToGenerate = 1)
         {
@@ -32,13 +31,6 @@ namespace BifrostNext.Keys
                     keysGenerated++;
                 }
             }
-        }
-
-        private static void GenerateKeys()
-        {
-            var (ca, priv, sign) = CertManager.GenerateKeys();
-            logger.Trace($"Computing new connection key..");
-            precomputedKeys.Enqueue(new KeyData(ca, priv, sign));
         }
 
         public static (string certAuthority, string privateKey, byte[] signKey) GetNextAvailableKeys()
@@ -74,7 +66,6 @@ namespace BifrostNext.Keys
 
         public static void MonitorKeyGeneration(CancellationToken serverCancellationToken, int preCalculateKeyCount = 0)
         {
-
             if (preCalculateKeyCount == -1)
                 return;
 
@@ -94,7 +85,6 @@ namespace BifrostNext.Keys
 
             while (!serverCancellationToken.IsCancellationRequested)
             {
-
                 if (threadsToBeRunning != 0 && currentKeyThreads >= threadsToBeRunning)
                 {
                     Thread.Sleep(100);
@@ -158,6 +148,13 @@ namespace BifrostNext.Keys
 
                 Thread.Sleep(100);
             }
+        }
+
+        private static void GenerateKeys()
+        {
+            var (ca, priv, sign) = CertManager.GenerateKeys();
+            logger.Trace($"Computing new connection key..");
+            precomputedKeys.Enqueue(new KeyData(ca, priv, sign));
         }
     }
 

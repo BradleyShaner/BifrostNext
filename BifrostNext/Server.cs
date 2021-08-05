@@ -1,4 +1,6 @@
-﻿using BifrostNext.Messages;
+﻿using BifrostNext.BifrostLSF;
+using BifrostNext.Keys;
+using BifrostNext.Messages;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -7,14 +9,13 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using BifrostNext.BifrostLSF;
 using static BifrostNext.Delegates;
-using BifrostNext.Keys;
 
 namespace BifrostNext
 {
     public class Server
     {
+        public bool IsRunning { get; private set; }
         public int MaxConnections = 100;
         public bool NoAuthentication = false;
         public bool RememberCertificates = false;
@@ -35,8 +36,6 @@ namespace BifrostNext
 
         public event UserDisconnected OnUserDisconnected;
 
-        public bool IsRunning { get; private set; }
-
         public Server(int maxConnections = 100)
         {
             LogManager.SetMinimumLogLevel(SerilogLogLevel.Debug);
@@ -45,16 +44,6 @@ namespace BifrostNext
             CertManager.GenerateCertificateAuthority();
 
             MaxConnections = maxConnections;
-        }
-
-        public void SetLogLevel(SerilogLogLevel logLevel)
-        {
-            LogManager.SetMinimumLogLevel(logLevel);
-        }
-
-        public void IgnoreLogClass(string ignoredClass)
-        {
-            LogManager.IgnoreLogClass(ignoredClass);
         }
 
         public void BroadcastMessage(Dictionary<string, byte[]> Store, AuthState minimumAuthState = AuthState.Authenticated, ClientData skipUser = null)
@@ -144,6 +133,16 @@ namespace BifrostNext
             return null;
         }
 
+        public void IgnoreLogClass(string ignoredClass)
+        {
+            LogManager.IgnoreLogClass(ignoredClass);
+        }
+
+        public bool IsConnectionTrusted(ClientData client)
+        {
+            return client.Connection.ServerLink.TrustedCertificateUsed;
+        }
+
         public bool SendMessage(Dictionary<string, byte[]> Store, UserConnection user)
         {
             Message msg = new Message(MessageType.Data, 0x01);
@@ -181,6 +180,11 @@ namespace BifrostNext
                 return false;
             }
             return true;
+        }
+
+        public void SetLogLevel(SerilogLogLevel logLevel)
+        {
+            LogManager.SetMinimumLogLevel(logLevel);
         }
 
         public bool Start(int listenPort, int keysToPreCalculate = 0)
@@ -227,7 +231,7 @@ namespace BifrostNext
 
             IsRunning = false;
 
-            if (listener != null) 
+            if (listener != null)
                 listener.Stop();
             else
                 listener = null;
@@ -252,11 +256,6 @@ namespace BifrostNext
             {
                 client.Connection.ServerLink.SetCertificateAuthorityTrust(trusted);
             }
-        }
-
-        public bool IsConnectionTrusted(ClientData client)
-        {
-            return client.Connection.ServerLink.TrustedCertificateUsed;
         }
 
         private void CleanupClient(ClientData client)
@@ -361,7 +360,6 @@ namespace BifrostNext
 
             if (result.Type == HandshakeResultType.Successful)
             {
-
                 lock (_UserListLock)
                 {
                     if (Clients.Count + 1 > MaxConnections)

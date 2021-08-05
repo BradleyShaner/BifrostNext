@@ -22,6 +22,8 @@ namespace BifrostNext
 
     public class ClientData
     {
+        public string ClientGuid { get; internal set; }
+        public DateTime TimeConnected { get; private set; }
         public static int NextClientId = 0;
 
         public AuthState AuthenticationState = AuthState.Unauthenticated;
@@ -29,12 +31,10 @@ namespace BifrostNext
         public KeyData ClientKeys = new KeyData();
 
         public string ClientName = "";
-        public IPEndPoint remoteEndpoint;
         public bool Connected;
         public UserConnection Connection;
         public PrivilegeLevel PrivilegeLevel = PrivilegeLevel.Guest;
-        public string ClientGuid { get; internal set; }
-        public DateTime TimeConnected { get; private set; }
+        public IPEndPoint remoteEndpoint;
 
         public ClientData(UserConnection userConnection)
         {
