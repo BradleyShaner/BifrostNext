@@ -13,6 +13,8 @@ using System.Threading;
 
 namespace BifrostLSF
 {
+    public delegate void MessageReceived(EncryptedLink link, Message msg);
+
     public delegate void DataReceived(EncryptedLink link, Dictionary<string, byte[]> Store);
 
     public delegate void LinkClosed(EncryptedLink link);
@@ -54,6 +56,9 @@ namespace BifrostLSF
 
         private Logger Log = LogManager.GetCurrentClassLogger();
         private Capability RemoteCapabilities;
+
+        // TODO: Go from "event X OnX" to "event OnX X"
+        public event MessageReceived OnMessageReceived;
 
         public event DataReceived OnDataReceived;
 
@@ -313,6 +318,8 @@ namespace BifrostLSF
                     Log.Trace("Null message, continuing");
                     continue;
                 }
+
+                OnMessageReceived?.Invoke(this, msg);
 
                 if (msg.Type == MessageType.Data)
                     OnDataReceived?.Invoke(this, msg.Store);
