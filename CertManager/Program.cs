@@ -1,4 +1,5 @@
-﻿using Bifrost;
+﻿using BifrostNext;
+using BifrostNext.BifrostLSF;
 using NDesk.Options;
 using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Security;
@@ -19,7 +20,7 @@ namespace CertManager
             string ca_path = "";
             string key_name = "";
 
-            Utilities.LogVersion();
+            BifrostNext.BifrostLSF.Utilities.LogVersion();
 
             OptionSet set = new OptionSet();
             set = new OptionSet()

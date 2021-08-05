@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFrameworks>netstandard2.0</TargetFrameworks>
+        <Authors>hexafluoride,LostSoulFly</Authors>
+        <Company />
+        <Product />
+        <Description>A lightweight cryptographic network protocol</Description>
+        <Copyright>hexafluoride</Copyright>
+        <PackageLicenseUrl>https://github.com/LostSoulfly/BifrostLSF/blob/master/LICENSE</PackageLicenseUrl>
+        <PackageProjectUrl>https://github.com/LostSoulfly/BifrostLSF</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/LostSoulfly/BifrostLSF</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageTags>cryptography, networking, network, csharp</PackageTags>
+        <PackageId>LostSoulfly.BifrostNext</PackageId>
+        <AssemblyName>BifrostNext</AssemblyName>
+        <RootNamespace>BifrostNext</RootNamespace>
+    </PropertyGroup>
+    <ItemGroup>
+      <Compile Remove="Extended\**" />
+      <EmbeddedResource Remove="Extended\**" />
+      <None Remove="Extended\**" />
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="BouncyCastle.NetCoreSdk" Version="1.9.3.1" />
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+        <PackageReference Include="Serilog" Version="2.10.1-dev-01343" />
+    </ItemGroup>
+    <ItemGroup>
+      <Folder Include="Properties\" />
+    </ItemGroup>
+</Project>
