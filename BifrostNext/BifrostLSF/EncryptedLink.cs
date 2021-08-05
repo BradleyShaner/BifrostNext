@@ -168,16 +168,25 @@ namespace BifrostNext.BifrostLSF
         /// <param name="ca">The public key of the certificate authority in text form.</param>
         /// <param name="key">Both our public and private key, concatenated, in text form.</param>
         /// <param name="sign">The signature in Base64.</param>
-        public void LoadCertificatesFromText(string ca, string key, string sign)
+        public void LoadCertificatesFromText(string ca_path, string key_path, string sign_path)
         {
-            CertificateAuthority = (RsaKeyParameters)RsaHelpers.PemDeserialize(Encoding.UTF8.GetString(Convert.FromBase64String(ca)));
-            Log.Debug("Loaded certificate authority.");
+            if (File.Exists(ca_path))
+            {
+                CertificateAuthority = (RsaKeyParameters)RsaHelpers.PemDeserialize(File.ReadAllText(ca_path));
+                Log.Debug("Loaded certificate authority from {0}", ca_path);
+            }
 
-            Certificate = (AsymmetricCipherKeyPair)RsaHelpers.PemDeserialize(Encoding.UTF8.GetString(Convert.FromBase64String(key)));
-            Log.Debug("Loaded certificate.");
+            if (File.Exists(key_path))
+            {
+                Certificate = (AsymmetricCipherKeyPair)RsaHelpers.PemDeserialize(File.ReadAllText(key_path));
+                Log.Debug("Loaded certificate from {0}", key_path);
+            }
 
-            Signature = Convert.FromBase64String(sign);
-            Log.Debug("Loaded signature.");
+            if (File.Exists(sign_path))
+            {
+                Signature = File.ReadAllBytes(sign_path);
+                Log.Debug("Loaded signature from {0}", sign_path);
+            }
         }
 
         /// <summary>
