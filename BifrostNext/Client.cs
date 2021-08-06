@@ -224,10 +224,18 @@ namespace BifrostNext
         private void ReconnectMonitor(CancellationToken clientCancellationToken, string host, int port)
         {
             logger.Info($"AutoReconnect Monitor started..");
+            int count = 0;
             ConnectThread(clientCancellationToken, host, port);
             while (AutoReconnect && !clientCancellationToken.IsCancellationRequested)
             {
-                Thread.Sleep(5000);
+
+                while (!clientCancellationToken.IsCancellationRequested && count <= 50)
+                {
+                    count++;
+                    Thread.Sleep(100);
+                }
+                count = 0;
+
                 if (!IsConnected && !IsConnecting && AutoReconnect)
                 {
                     ConnectThread(clientCancellationToken, host, port);

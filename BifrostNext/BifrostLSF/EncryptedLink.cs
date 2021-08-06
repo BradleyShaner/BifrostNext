@@ -88,7 +88,7 @@ namespace BifrostNext.BifrostLSF
         {
             Log.Debug("Heartbeat capable peer.");
 
-            while ((DateTime.Now - _last_received).TotalSeconds < 10)
+            while (!Closed && (DateTime.Now - _last_received).TotalSeconds < 10)
                 Thread.Sleep(500);
 
             if (!Closed)
@@ -140,7 +140,7 @@ namespace BifrostNext.BifrostLSF
             {
                 SendMessage(new Message(MessageType.Heartbeat, 0));
 
-                while ((DateTime.Now - _last_sent).TotalSeconds < 3)
+                while ((DateTime.Now - _last_sent).TotalSeconds < 3 && !Closed)
                     Thread.Sleep(500);
             }
         }
