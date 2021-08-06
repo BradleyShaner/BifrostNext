@@ -56,8 +56,7 @@ namespace BifrostNext.BifrostLSF
             if (!done.WaitOne(10000))
             {
                 Close();
-                Thread.Sleep(100);
-                thread.Abort();
+                //thread.Abort();
             }
 
             return result;
