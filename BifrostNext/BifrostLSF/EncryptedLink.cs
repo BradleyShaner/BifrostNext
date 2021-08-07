@@ -305,7 +305,7 @@ namespace BifrostNext.BifrostLSF
             byte[] final_message = Suite.Encrypt(raw_message);
 
             _last_sent = DateTime.Now;
-            Tunnel.Send(final_message);
+            if (!Closed) Tunnel.Send(final_message);
         }
 
         /// <summary>

@@ -96,6 +96,9 @@ namespace BifrostNext.BifrostLSF
         /// <returns>The received chunk of data.</returns>
         public byte[] Receive()
         {
+            if (Closed)
+                return new byte[0];
+
             try
             {
                 uint len = NetworkStream.ReadUInt();
@@ -107,7 +110,7 @@ namespace BifrostNext.BifrostLSF
             }
             catch (Exception ex)
             {
-                Log.Trace(ex);
+                //Log.Trace("REC" + ex);
                 Close();
                 return new byte[0];
             }
@@ -119,6 +122,9 @@ namespace BifrostNext.BifrostLSF
         /// <param name="data">The data to be sent.</param>
         public void Send(byte[] data)
         {
+            if (Closed)
+                return;
+
             try
             {
                 NetworkStream.WriteUInt((uint)data.Length);
@@ -129,7 +135,7 @@ namespace BifrostNext.BifrostLSF
             }
             catch (Exception ex)
             {
-                Log.Trace(ex);
+                //Log.Trace("SEND" + ex);
                 Close();
             }
         }

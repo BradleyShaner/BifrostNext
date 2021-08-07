@@ -96,7 +96,7 @@ namespace BifrostNext
 
             try
             {
-                link.SendMessage(message);
+                if (link != null) link.SendMessage(message);
             }
             catch (Exception ex)
             {
