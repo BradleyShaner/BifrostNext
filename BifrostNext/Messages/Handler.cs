@@ -41,7 +41,7 @@ namespace BifrostNext.Messages
 
             try
             {
-                logger.Info($"Processing incoming {messageType.Name}: {packet.Length} bytes");
+                logger.Debug($"Processing incoming {messageType.Name}: {packet.Length} bytes");
                 message = (IMessage)JsonConvert.DeserializeObject(Encoding.UTF8.GetString(packet), messageType);
             }
             catch (Exception ex)

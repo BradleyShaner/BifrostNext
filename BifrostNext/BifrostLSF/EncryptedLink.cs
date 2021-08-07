@@ -86,7 +86,7 @@ namespace BifrostNext.BifrostLSF
 
         public void CheckAlive()
         {
-            Log.Debug("Heartbeat capable peer.");
+            Log.Trace("Heartbeat capable peer.");
 
             while (!Closed && (DateTime.Now - _last_received).TotalSeconds < 10)
                 Thread.Sleep(500);
@@ -154,12 +154,12 @@ namespace BifrostNext.BifrostLSF
         public void LoadCertificatesFromFiles(string ca_path, string key_path, string sign_path)
         {
             CertificateAuthority = (RsaKeyParameters)RsaHelpers.PemDeserialize(File.ReadAllText(ca_path));
-            Log.Debug("Loaded certificate authority from {0}", ca_path);
+            Log.Trace("Loaded certificate authority from {0}", ca_path);
             Certificate = (AsymmetricCipherKeyPair)RsaHelpers.PemDeserialize(File.ReadAllText(key_path));
-            Log.Debug("Loaded certificate from {0}", key_path);
+            Log.Trace("Loaded certificate from {0}", key_path);
 
             Signature = File.ReadAllBytes(sign_path);
-            Log.Debug("Loaded signature from {0}", sign_path);
+            Log.Trace("Loaded signature from {0}", sign_path);
         }
 
         /// <summary>
@@ -173,19 +173,19 @@ namespace BifrostNext.BifrostLSF
             if (File.Exists(ca_path))
             {
                 CertificateAuthority = (RsaKeyParameters)RsaHelpers.PemDeserialize(File.ReadAllText(ca_path));
-                Log.Debug("Loaded certificate authority from {0}", ca_path);
+                Log.Trace("Loaded certificate authority from {0}", ca_path);
             }
 
             if (File.Exists(key_path))
             {
                 Certificate = (AsymmetricCipherKeyPair)RsaHelpers.PemDeserialize(File.ReadAllText(key_path));
-                Log.Debug("Loaded certificate from {0}", key_path);
+                Log.Trace("Loaded certificate from {0}", key_path);
             }
 
             if (File.Exists(sign_path))
             {
                 Signature = File.ReadAllBytes(sign_path);
-                Log.Debug("Loaded signature from {0}", sign_path);
+                Log.Trace("Loaded signature from {0}", sign_path);
             }
         }
 
@@ -198,13 +198,13 @@ namespace BifrostNext.BifrostLSF
         public void LoadCertificatesNonBase64(string caPublicKey, string pubPrivKeyPair, byte[] sign)
         {
             CertificateAuthority = (RsaKeyParameters)RsaHelpers.PemDeserialize(caPublicKey);
-            Log.Debug("Loaded certificate authority.");
+            Log.Trace("Loaded certificate authority.");
 
             Certificate = (AsymmetricCipherKeyPair)RsaHelpers.PemDeserialize(pubPrivKeyPair);
-            Log.Debug("Loaded certificate.");
+            Log.Trace("Loaded certificate.");
 
             Signature = sign;
-            Log.Debug("Loaded signature.");
+            Log.Trace("Loaded signature.");
         }
 
         /// <summary>

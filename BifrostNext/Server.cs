@@ -101,6 +101,36 @@ namespace BifrostNext
             }
         }
 
+        public void BroadcastMessage(IMessage msg, PrivilegeLevel minimumPrivLevel = PrivilegeLevel.Administrator, ClientData skipUser = null)
+        {
+            string serialized = JsonConvert.SerializeObject(msg, Formatting.None);
+
+            Type t = msg.GetType();
+
+            Message message = new Message(MessageType.Data, 0x01);
+            message.Store["type"] = Encoding.UTF8.GetBytes(t.Name);
+            message.Store["message"] = Utilities.Compress(Encoding.UTF8.GetBytes(serialized));
+
+            lock (_UserListLock)
+            {
+                foreach (var user in Clients)
+                {
+                    try
+                    {
+                        if (skipUser != null && user == skipUser)
+                            continue;
+
+                        if (user.PrivilegeLevel >= minimumPrivLevel)
+                            user.Connection.ServerLink.SendMessage(message);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Trace(ex.Message, "Server BroadcastMessage: " + user.ClientName != string.Empty ? user.ClientGuid : user.ClientName);
+                    }
+                }
+            }
+        }
+
         public ClientData GetClientFromLink(ServerLink serverLink)
         {
             lock (_UserListLock)
@@ -109,7 +139,7 @@ namespace BifrostNext
                 {
                     if (user.Connection.ServerLink == serverLink)
                     {
-                        logger.Debug("GetClientFromLink found: " + user.ClientId);
+                        logger.Trace("GetClientFromLink found: " + user.ClientId);
                         return user;
                     }
                 }
@@ -125,7 +155,7 @@ namespace BifrostNext
                 {
                     if (user.Connection.ServerLink.GetEncryptedLink() == encryptedLink)
                     {
-                        logger.Debug("GetClientFromLink found: " + user.ClientId);
+                        logger.Trace("GetClientFromLink found: " + user.ClientId);
                         return user;
                     }
                 }
@@ -292,7 +322,7 @@ namespace BifrostNext
             // If the store contains a Message type..
             if (Store.ContainsKey("type") && Handler.GetServerMessageType(Encoding.UTF8.GetString(Store["type"])) != null)
             {
-                logger.Info($"Incoming compressed packet: {Store["message"].Length} bytes");
+                logger.Debug($"Incoming compressed packet: {Store["message"].Length} bytes");
                 IMessage message = Handler.ConvertServerPacketToMessage(Store["type"], Utilities.Decompress(Store["message"]));
                 Handler.HandleServerMessage(clientData, message);
             }
@@ -319,11 +349,11 @@ namespace BifrostNext
         {
             TcpClient client = (TcpClient)argument;
 
-            logger.Debug($"Client socket accepted..");
+            logger.Trace($"Client socket accepted..");
             TcpTunnel tunnel = new TcpTunnel(client);
-            logger.Debug($"Client tunnel created..");
+            logger.Trace($"Client tunnel created..");
             ServerLink link = new ServerLink(tunnel);
-            logger.Debug($"Client link created..");
+            logger.Trace($"Client link created..");
 
             link.RememberRemoteCertAuthority = RememberCertificates;
             link.NoAuthentication = NoAuthentication;
@@ -343,7 +373,7 @@ namespace BifrostNext
                 return;
             }
 
-            logger.Debug($"Passing certificates into Bifrost..");
+            logger.Trace($"Passing certificates into Bifrost..");
             link.LoadCertificatesNonBase64(ca, priv, sign);
 
             link.OnDataReceived += Link_OnDataReceived;
