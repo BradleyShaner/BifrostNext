@@ -21,7 +21,7 @@ namespace BifrostNext.BifrostLSF
         public ServerLink(ITunnel tunnel, bool noAuthentication = false, bool rememberRemoteCertAuthority = false)
         {
             Tunnel = tunnel;
-            NoAuthentication = NoAuthentication;
+            NoAuthentication = noAuthentication;
             RememberRemoteCertAuthority = rememberRemoteCertAuthority;
         }
 
