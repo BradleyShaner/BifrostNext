@@ -15,11 +15,11 @@ namespace BifrostNext
     public static class CertManager
     {
         private static object _knownCertificateLock = new object();
-        private static string _certificateAuthorityPrivateKey;
-        private static string _certificateAuthorityPublicKey;
+        internal static string _certificateAuthorityPrivateKey;
+        internal static string _certificateAuthorityPublicKey;
         private static List<CertAuthInfo> _knownCertificates;
 
-        private static AsymmetricCipherKeyPair _certAuthority;
+        internal static AsymmetricCipherKeyPair _certAuthority;
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
@@ -71,31 +71,15 @@ namespace BifrostNext
                 _certificateAuthorityPublicKey = RsaHelpers.PemSerialize(pair.Public);
             }
 
+            CheckCertAuthority();
+
             return;
         }
 
-        public static (string certAuthority, string clientPrivateKey, byte[] clientSignKey) GenerateKeys(string caPath = "")
+        public static (string certAuthority, string clientPrivateKey, byte[] clientSignKey) GenerateKeys(string caFile = "")
         {
-            string privCaKeyPath;
 
-            if (_certAuthority == null)
-            {
-                if (string.IsNullOrWhiteSpace(caPath))
-                {
-                    caPath = $"{Environment.MachineName}.ca";
-                }
-
-                privCaKeyPath = caPath.ToLower().Replace(".ca", ".privkey");
-
-                if (String.IsNullOrWhiteSpace(_certificateAuthorityPrivateKey))
-                    _certificateAuthorityPrivateKey = File.ReadAllText($"{privCaKeyPath}");
-
-                string caPrivKey = _certificateAuthorityPrivateKey;
-                _certAuthority = (AsymmetricCipherKeyPair)RsaHelpers.PemDeserialize(caPrivKey);
-            }
-
-            if (String.IsNullOrWhiteSpace(_certificateAuthorityPublicKey))
-                _certificateAuthorityPublicKey = RsaHelpers.PemSerialize(_certAuthority.Public);
+            CheckCertAuthority(caFile);
 
             logger.Trace("Generating new keys..");
             var key = new RSACryptoServiceProvider(2048);
@@ -120,6 +104,28 @@ namespace BifrostNext
                 logger.Error("Signature validation failed!");
             }
             return (null, null, null);
+        }
+
+        public static void CheckCertAuthority(string caFile = "")
+        {
+            if (_certAuthority == null)
+            {
+                if (string.IsNullOrWhiteSpace(caFile))
+                {
+                    caFile = $"{Environment.MachineName}.ca";
+                }
+
+                var privCaKeyPath = caFile.ToLower().Replace(".ca", ".privkey");
+
+                if (String.IsNullOrWhiteSpace(_certificateAuthorityPrivateKey))
+                    _certificateAuthorityPrivateKey = File.ReadAllText($"{privCaKeyPath}");
+
+                string caPrivKey = _certificateAuthorityPrivateKey;
+                _certAuthority = (AsymmetricCipherKeyPair)RsaHelpers.PemDeserialize(caPrivKey);
+            }
+
+            if (String.IsNullOrWhiteSpace(_certificateAuthorityPublicKey))
+                _certificateAuthorityPublicKey = RsaHelpers.PemSerialize(_certAuthority.Public);
         }
 
         public static bool IsCertificateTrusted(string hash)
