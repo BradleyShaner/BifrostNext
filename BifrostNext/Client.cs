@@ -35,7 +35,7 @@ namespace BifrostNext
 
         public Client()
         {
-            LogManager.SetMinimumLogLevel(SerilogLogLevel.Information);
+            LogManager.SetMinimumLogLevel(SerilogLogLevel.Verbose);
             EventSink.OnLogEvent += EventSink_OnLogEvent;
 
             BifrostNext.CertManager.GenerateCertificateAuthority();

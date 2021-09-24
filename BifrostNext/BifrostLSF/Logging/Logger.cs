@@ -9,7 +9,7 @@ namespace BifrostNext.BifrostLSF
 {
     public static class LogManager
     {
-        public static LoggingLevelSwitch loggingLevel = new LoggingLevelSwitch(Serilog.Events.LogEventLevel.Information);
+        public static LoggingLevelSwitch loggingLevel = new LoggingLevelSwitch(Serilog.Events.LogEventLevel.Verbose);
         public static string logPrefix = "";
         public static EventSink LogSink = new EventSink();
         public static string outputLogFile = "";

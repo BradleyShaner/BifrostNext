@@ -38,7 +38,7 @@ namespace BifrostNext
 
         public Server(int maxConnections = 100)
         {
-            LogManager.SetMinimumLogLevel(SerilogLogLevel.Debug);
+            LogManager.SetMinimumLogLevel(SerilogLogLevel.Verbose);
             EventSink.OnLogEvent += EventSink_OnLogEvent;
 
             CertManager.GenerateCertificateAuthority();
