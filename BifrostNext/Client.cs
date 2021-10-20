@@ -41,6 +41,16 @@ namespace BifrostNext
             BifrostNext.CertManager.GenerateCertificateAuthority();
         }
 
+        public Client(string certificatePath)
+        {
+            LogManager.SetMinimumLogLevel(SerilogLogLevel.Verbose);
+            EventSink.OnLogEvent += EventSink_OnLogEvent;
+
+            CertManager.caPath = certificatePath;
+
+            BifrostNext.CertManager.GenerateCertificateAuthority(certificatePath);
+        }
+
         public bool Connect(string host, int port)
         {
             if (IsConnected)

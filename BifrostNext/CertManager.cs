@@ -18,6 +18,7 @@ namespace BifrostNext
         internal static string _certificateAuthorityPrivateKey;
         internal static string _certificateAuthorityPublicKey;
         private static List<CertAuthInfo> _knownCertificates;
+        internal static string caPath = "";
 
         internal static AsymmetricCipherKeyPair _certAuthority;
 
@@ -48,8 +49,15 @@ namespace BifrostNext
             string privCaKeyPath;
 
             if (string.IsNullOrWhiteSpace(caPath))
+                caPath = CertManager.caPath;
+
+                if (string.IsNullOrWhiteSpace(caPath))
             {
                 caPath = $"{Environment.MachineName}.ca";
+            } 
+            else if (!caPath.ToLower().Contains(".ca"))
+            {
+                caPath = Path.Combine(caPath, $"{Environment.MachineName}.ca");
             }
 
             privCaKeyPath = caPath.ToLower().Replace(".ca", ".privkey");
@@ -71,15 +79,15 @@ namespace BifrostNext
                 _certificateAuthorityPublicKey = RsaHelpers.PemSerialize(pair.Public);
             }
 
-            CheckCertAuthority();
+            CheckCertAuthority(caPath);
 
             return;
         }
 
-        public static (string certAuthority, string clientPrivateKey, byte[] clientSignKey) GenerateKeys(string caFile = "")
+        public static (string certAuthority, string clientPrivateKey, byte[] clientSignKey) GenerateKeys(string caPath = "")
         {
 
-            CheckCertAuthority(caFile);
+            CheckCertAuthority(caPath);
 
             logger.Trace("Generating new keys..");
             var key = new RSACryptoServiceProvider(2048);
@@ -106,16 +114,24 @@ namespace BifrostNext
             return (null, null, null);
         }
 
-        public static void CheckCertAuthority(string caFile = "")
+        public static void CheckCertAuthority(string caPath = "")
         {
+
+            if (string.IsNullOrWhiteSpace(caPath))
+                caPath = CertManager.caPath;
+
             if (_certAuthority == null)
             {
-                if (string.IsNullOrWhiteSpace(caFile))
+                if (string.IsNullOrWhiteSpace(caPath))
                 {
-                    caFile = $"{Environment.MachineName}.ca";
+                    caPath = $"{Environment.MachineName}.ca";
+                }
+                else if (!caPath.ToLower().Contains(".ca"))
+                {
+                    caPath = Path.Combine(caPath, $"{Environment.MachineName}.ca");
                 }
 
-                var privCaKeyPath = caFile.ToLower().Replace(".ca", ".privkey");
+                var privCaKeyPath = caPath.ToLower().Replace(".ca", ".privkey");
 
                 if (String.IsNullOrWhiteSpace(_certificateAuthorityPrivateKey))
                     _certificateAuthorityPrivateKey = File.ReadAllText($"{privCaKeyPath}");
@@ -159,13 +175,17 @@ namespace BifrostNext
             }
         }
 
-        public static void SaveKnownCertificates()
+        public static void SaveKnownCertificates(string caPath = "")
         {
+
+            if (string.IsNullOrWhiteSpace(caPath))
+                caPath = CertManager.caPath;
+
             lock (_knownCertificateLock)
             {
                 try
                 {
-                    File.WriteAllText("KnownCerts.json", JsonConvert.SerializeObject(_knownCertificates, Formatting.Indented));
+                    File.WriteAllText(Path.Combine(caPath, "KnownCerts.json"), JsonConvert.SerializeObject(_knownCertificates, Formatting.Indented));
                     logger.Debug("Wrote KnownCerts.json successfully!");
                 }
                 catch (Exception ex)
@@ -194,12 +214,23 @@ namespace BifrostNext
                 SaveKnownCertificates();
         }
 
-        private static void LoadKnownCertificates()
+        private static void LoadKnownCertificates(string caPath = "")
         {
+
+            if (string.IsNullOrWhiteSpace(caPath))
+                caPath = CertManager.caPath;
+
+            string path = Path.Combine(caPath, "KnownCerts.json");
+
+            if (!string.IsNullOrWhiteSpace(caPath))
+            {
+                path = Path.Combine(caPath, path);
+            }
+
             try
             {
                 lock (_knownCertificateLock)
-                    _knownCertificates = JsonConvert.DeserializeObject<List<CertAuthInfo>>(File.ReadAllText("KnownCerts.json"));
+                    _knownCertificates = JsonConvert.DeserializeObject<List<CertAuthInfo>>(File.ReadAllText(path));
             }
 #pragma warning disable CS0168 // Variable is declared but never used
             catch (Exception ex)
