@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Org.BouncyCastle.Crypto.Parameters;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
@@ -66,7 +67,7 @@ namespace BifrostNext
             }
         }
 
-        public static void RaiseEventOnUIThread(Delegate theEvent, ClientData arg1, Dictionary<string, byte[]> arg2)
+        public static void RaiseEventOnUIThread(Delegate theEvent, ClientData clientData, Dictionary<string, byte[]> arg2)
         {
             if (theEvent == null)
                 return;
@@ -78,7 +79,7 @@ namespace BifrostNext
                 {
                     try
                     {
-                        d.DynamicInvoke(new object[] { arg1, arg2 });
+                        d.DynamicInvoke(new object[] { clientData, arg2 });
                     }
                     catch { }
                 }
@@ -86,14 +87,14 @@ namespace BifrostNext
                 {
                     try
                     {
-                        syncer.BeginInvoke(d, new object[] { arg1, arg2 });
+                        syncer.BeginInvoke(d, new object[] { clientData, arg2 });
                     }
                     catch { }
                 }
             }
         }
 
-        public static void RaiseEventOnUIThread(Delegate theEvent, Client arg1, bool arg2)
+        public static void RaiseEventOnUIThread(Delegate theEvent, Client client, bool arg2)
         {
             if (theEvent == null)
                 return;
@@ -105,7 +106,7 @@ namespace BifrostNext
                 {
                     try
                     {
-                        d.DynamicInvoke(new object[] { arg1, arg2 });
+                        d.DynamicInvoke(new object[] { client, arg2 });
                     }
                     catch { }
                 }
@@ -113,14 +114,14 @@ namespace BifrostNext
                 {
                     try
                     {
-                        syncer.BeginInvoke(d, new object[] { arg1, arg2 });
+                        syncer.BeginInvoke(d, new object[] { client, arg2 });
                     }
                     catch { }
                 }
             }
         }
 
-        public static void RaiseEventOnUIThread(Delegate theEvent, Client arg1, Dictionary<string, byte[]> arg2)
+        public static void RaiseEventOnUIThread(Delegate theEvent, Client client, Dictionary<string, byte[]> arg2)
         {
             if (theEvent == null)
                 return;
@@ -132,7 +133,7 @@ namespace BifrostNext
                 {
                     try
                     {
-                        d.DynamicInvoke(new object[] { arg1, arg2 });
+                        d.DynamicInvoke(new object[] { client, arg2 });
                     }
                     catch { }
                 }
@@ -140,7 +141,7 @@ namespace BifrostNext
                 {
                     try
                     {
-                        syncer.BeginInvoke(d, new object[] { arg1, arg2 });
+                        syncer.BeginInvoke(d, new object[] { client, arg2 });
                     }
                     catch { }
                 }
@@ -174,7 +175,7 @@ namespace BifrostNext
             }
         }
 
-        public static void RaiseEventOnUIThread(Delegate theEvent, ClientData args)
+        public static void RaiseEventOnUIThread(Delegate theEvent, ClientData clientData)
         {
             if (theEvent == null)
                 return;
@@ -186,7 +187,7 @@ namespace BifrostNext
                 {
                     try
                     {
-                        d.DynamicInvoke(args);
+                        d.DynamicInvoke(clientData);
                     }
                     catch { }
                 }
@@ -194,7 +195,34 @@ namespace BifrostNext
                 {
                     try
                     {
-                        syncer.BeginInvoke(d, new object[] { args });
+                        syncer.BeginInvoke(d, new object[] { clientData });
+                    }
+                    catch { }
+                }
+            }
+        }
+
+        internal static void RaiseEventOnUIThread(Delegate theEvent, RsaKeyParameters remoteCertificateAuthority, string remoteCertificateHash)
+        {
+            if (theEvent == null)
+                return;
+
+            foreach (Delegate d in theEvent.GetInvocationList())
+            {
+                ISynchronizeInvoke syncer = d.Target as ISynchronizeInvoke;
+                if (syncer == null)
+                {
+                    try
+                    {
+                        d.DynamicInvoke(remoteCertificateAuthority, remoteCertificateHash);
+                    }
+                    catch { }
+                }
+                else
+                {
+                    try
+                    {
+                        syncer.BeginInvoke(d, new object[] { remoteCertificateAuthority, remoteCertificateHash });
                     }
                     catch { }
                 }

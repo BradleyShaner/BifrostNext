@@ -187,6 +187,9 @@ namespace BifrostNext
 
             link.OnDataReceived += Link_OnDataReceived;
             link.OnLinkClosed += Link_OnLinkClosed;
+            
+            // TODO: Request server public certificateAuthority, check if it's known and trusted, then raise an even/delegate to add it 
+
             var result = link.PerformHandshake();
 
             if (result.Type != HandshakeResultType.Successful)
